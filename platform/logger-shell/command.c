@@ -30,6 +30,7 @@
 #define USE_BUILTINTEST 1
 #include "testkonoha.h"
 #include <getopt.h>
+#include <syslog.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -572,7 +573,7 @@ static char *write_uint_toebuf(uintptr_t unboxValue, char *const p, const char *
 #define LOG_s   1
 #define LOG_u   2
 
-static uintptr_t logger_p(FILE *fp, va_list ap)
+static uintptr_t logger_p(void *arg, va_list ap)
 {
 	char buf[EBUFSIZ], *p = buf, *ebuf =  p + (EBUFSIZ - 4);
 	p[0] = '{'; p++;
@@ -603,22 +604,21 @@ static uintptr_t logger_p(FILE *fp, va_list ap)
 	p[0] = '}'; p++;
 	p[0] = '\n'; p++;
 	p[0] = '\0';
-	fputs(buf, fp);
-	fflush(fp);
+	syslog(LOG_NOTICE, "%s", buf);
 	return 0;// FIXME reference to log
 }
 
-static uintptr_t logger(FILE *fp, ...)
+static uintptr_t logger(void *arg, ...)
 {
 	va_list ap;
-	va_start(ap, fp);
-	uintptr_t ref = logger_p(fp, ap);
+	va_start(ap, arg);
+	uintptr_t ref = logger_p(arg, ap);
 	va_end(ap);
 	return ref;
 }
 
-#define trace(fp, ...) do {\
-	logger(fp, __VA_ARGS__, LOG_END);\
+#define trace(arg, ...) do {\
+	logger(p, __VA_ARGS__, LOG_END);\
 } while(0)
 
 // -------------------------------------------------------------------------
@@ -882,7 +882,7 @@ static int stat_fd = -1;
 #define UPTIME_FILE  "/proc/uptime"
 static int uptime_fd = -1;
 #define LOADAVG_FILE "/proc/loadavg"
-static int loadavg_fd = -1;
+//static int loadavg_fd = -1;
 #define MEMINFO_FILE "/proc/meminfo"
 static int meminfo_fd = -1;
 #define VMINFO_FILE "/proc/vmstat"
@@ -1667,14 +1667,13 @@ static int file2str(const char *directory, const char *what, char *ret, int cap)
 /////////////////////////////////////////////////////////////////////////
 
 static pid_t pid = 0;
-static char path[64];
+static char pid_path[64];
 
 static proc_t* simple_readproc(proc_t *restrict const p) {
-    static struct stat sb;		// stat() buffer
     static char sbuf[1024];	// buffer for stat,statm
-	if (unlikely(file2str(path, "stat", sbuf, sizeof sbuf) == -1)) return NULL;
+	if (unlikely(file2str(pid_path, "stat", sbuf, sizeof sbuf) == -1)) return NULL;
 	stat2proc(sbuf, p);				/* parse /proc/#/stat */
-	if (likely(file2str(path, "statm", sbuf, sizeof sbuf) != -1 )) {
+	if (likely(file2str(pid_path, "statm", sbuf, sizeof sbuf) != -1 )) {
 		statm2proc(sbuf, p);
 	}
 	return p;
@@ -1744,7 +1743,7 @@ static unsigned page_to_kb_shift;
 
 #define PAGES_TO_KB(n)  (unsigned long)( (n) << page_to_kb_shift )
 
-static void resourceMonitor(FILE *fp) {
+static void resourceMonitor(void) {
 	unsigned int hz = Hertz;
 	unsigned int running,blocked,dummy_1,dummy_2;
 	jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2], cpu_zzz[2];
@@ -1772,8 +1771,9 @@ static void resourceMonitor(FILE *fp) {
 	proc_t *p = (proc_t *)alloca(sizeof(proc_t));
 	p = simple_readproc(p);
 	prochlp(p);
+	static void *arg;
 
-	trace(fp,
+	trace(arg,
 			KeyValue_u("pid",           pid),
 			KeyValue_u("time",          getTime()),
 			KeyValue_u("procs_running", running),
@@ -1800,29 +1800,14 @@ static void resourceMonitor(FILE *fp) {
 
 // -------------------------------------------------------------------------
 
-struct targ_t {
-	KonohaContext *konoha;
-	char *langlog_dir;
-};
-
 static void *monitor_func(void *arg)
 {
-	struct targ_t *targ = (struct targ_t *)arg;
-	char *path = targ->langlog_dir;
-	FILE *fp;
-	if(!(fp = fopen(path, "w"))) {
-		fprintf(stderr, "Cannot open a file '%s'.\n", path);
-		exit(EXIT_FAILURE);
-	}
-
 	while(true) {
-		resourceMonitor(fp);
+		resourceMonitor();
 		sleep(1);
 	}
 	return NULL;
 }
-
-static int langlog = 0;
 
 static struct option long_options2[] = {
 	/* These options set a flag. */
@@ -1838,7 +1823,6 @@ static struct option long_options2[] = {
 	{"test",  required_argument, 0, 'T'},
 	{"test-with",  required_argument, 0, 'T'},
 	{"builtin-test",  required_argument, 0, 'B'},
-	{"lang-log",      required_argument, 0, 'L'},
 	{NULL, 0, 0, 0},
 };
 
@@ -1846,7 +1830,6 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 {
 	kbool_t ret = true;
 	int scriptidx = 0;
-	char *langlog_dir;
 	while (1) {
 		int option_index = 0;
 		int c = getopt_long (argc, argv, "icD:I:S:L:", long_options2, &option_index);
@@ -1904,13 +1887,6 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 			plat->reportCaughtException = TEST_reportCaughtException;
 			return KonohaContext_test(konoha, optarg);
 
-		case 'L':
-			langlog = 1;
-			langlog_dir = optarg;
-			pid = getpid();
-			snprintf(path, 64, "/proc/%d", pid);
-			break;
-
 		case '?':
 			/* getopt_long already printed an error message. */
 			break;
@@ -1921,17 +1897,19 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	}
 	scriptidx = optind;
 	CommandLine_setARGV(konoha, argc - scriptidx, argv + scriptidx);
-	if(langlog) {
-		Page_size = getpagesize();
-		int i = Page_size;
-		while(i > 1024) {
-			i >>= 1;
-			page_to_kb_shift++;
-		}
-		pthread_t logging_thread;
-		struct targ_t targ = {konoha, langlog_dir};
-		pthread_create(&logging_thread, NULL, monitor_func, (void *)&targ);
+
+	pid = getpid();
+	snprintf(pid_path, 64, "/proc/%d", pid);
+	Page_size = getpagesize(); // for mem usage
+	int i = Page_size;
+	while(i > 1024) {
+		i >>= 1;
+		page_to_kb_shift++;
 	}
+	openlog("loggerkonoha", LOG_PID, LOG_LOCAL7); // for using syslog
+	pthread_t logging_thread;
+	pthread_create(&logging_thread, NULL, monitor_func, (void *)konoha);
+
 	if(scriptidx < argc) {
 		ret = konoha_load(konoha, argv[scriptidx]);
 	}
@@ -1943,6 +1921,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 		CommandLine_import(konoha, "konoha.i");
 		ret = konoha_shell(konoha);
 	}
+	closelog();
 	return (ret == true) ? 0 : 1;
 }
 
