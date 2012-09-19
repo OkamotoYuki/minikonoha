@@ -95,6 +95,12 @@ static void kDIR_free(KonohaContext *kctx, kObject *o)
 		int ret = closedir(dir->dirp);
 		if(ret == -1) {
 			// TODO: throw
+			ktrace(_SystemFault,
+					KeyValue_s("@", "closedir"),
+					KeyValue_p("dirp", dir->dirp),
+					KeyValue_s("errstr", strerror(errno))
+				  );
+			PLATAPI monitorResource(BIGDATA);
 		}
 		dir->dirp = NULL;
 	}
@@ -155,6 +161,7 @@ static KMETHOD System_lseek(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_u("whence", whence),
 			   KeyValue_s("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_((int)ret_offset);
 }
@@ -179,6 +186,7 @@ static KMETHOD System_ftruncate(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_u("length", length),
 			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNb_(ret == 0);
 }
@@ -196,6 +204,7 @@ static KMETHOD System_fchmod(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_u("mode", mode),
 			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNb_(ret == 0);
 }
@@ -233,6 +242,7 @@ static KMETHOD System_flock(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_u("operation", operation),
 			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNb_(ret == 0);
 }
@@ -246,8 +256,9 @@ static KMETHOD System_sync(KonohaContext *kctx, KonohaStack *sfp)
 		// TODO: throw
 		ktrace(_SystemFault,
 			   KeyValue_s("@", "fsync"),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNb_(ret == 0);
 }
@@ -265,8 +276,9 @@ static KMETHOD System_link(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("@", "link"),
 			   KeyValue_s("oldpath", oldpath),
 			   KeyValue_s("newpath", newpath),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -281,8 +293,9 @@ static KMETHOD System_unlink(KonohaContext *kctx, KonohaStack *sfp)
 		ktrace(_SystemFault,
 			   KeyValue_s("@", "unlink"),
 			   KeyValue_s("pathname", pathname),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -300,8 +313,9 @@ static KMETHOD System_rename(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("@", "rename"),
 			   KeyValue_s("oldpath", oldpath),
 			   KeyValue_s("newpath", newpath),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -316,8 +330,9 @@ static KMETHOD System_rmdir(KonohaContext *kctx, KonohaStack *sfp)
 		ktrace(_SystemFault,
 			   KeyValue_s("@", "rmdir"),
 			   KeyValue_s("pathname", pathname),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -335,8 +350,9 @@ static KMETHOD System_symlink(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("@", "symlink"),
 			   KeyValue_s("oldpath", oldpath),
 			   KeyValue_s("newpath", newpath),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -356,8 +372,9 @@ static KMETHOD System_readlink(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("pathname", pathname),
 			   KeyValue_s("buf", buf),
 			   KeyValue_u("bufsize", bufsize),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -376,8 +393,9 @@ static KMETHOD System_chown(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("pathname", pathname),
 			   KeyValue_u("owner", owner),
 			   KeyValue_u("group", group),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -396,8 +414,9 @@ static KMETHOD System_lchown(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("pathname", pathname),
 			   KeyValue_u("owner", owner),
 			   KeyValue_u("group", group),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -414,8 +433,9 @@ static KMETHOD System_fchown(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("@", "fchown"),
 			   KeyValue_u("owner", owner),
 			   KeyValue_u("group", group),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -432,8 +452,9 @@ static KMETHOD System_access(KonohaContext *kctx, KonohaStack *sfp)
 			   KeyValue_s("@", "access"),
 			   KeyValue_s("pathname", pathname),
 			   KeyValue_u("mode", mode),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -446,8 +467,9 @@ static KMETHOD System_fsync(KonohaContext *kctx, KonohaStack *sfp)
 		// TODO: throw
 		ktrace(_SystemFault,
 			   KeyValue_s("@", "fsync"),
-			   KeyValue_p("errstr", strerror(errno))
+			   KeyValue_s("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -464,6 +486,12 @@ static KMETHOD System_stat(KonohaContext *kctx, KonohaStack *sfp)
 	}
 	else {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "stat"),
+			   KeyValue_s("path", path),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 		RETURN_(KLIB Knull(kctx, O_ct(sfp[K_RTNIDX].o)));
 	}
 	RETURN_(stat);
@@ -481,6 +509,12 @@ static KMETHOD System_lstat(KonohaContext *kctx, KonohaStack *sfp)
 	}
 	else {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "lstat"),
+			   KeyValue_s("path", path),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURN_(stat);
 }
@@ -497,6 +531,12 @@ static KMETHOD System_fstat(KonohaContext *kctx, KonohaStack *sfp)
 	}
 	else {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "fstat"),
+			   KeyValue_u("fd", fd),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURN_(stat);
 }
@@ -636,6 +676,12 @@ static KMETHOD System_opendir(KonohaContext *kctx, KonohaStack *sfp)
 	}
 	else {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "opendir"),
+			   KeyValue_s("name", name),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURN_(dir);
 }
@@ -647,6 +693,12 @@ static KMETHOD DIR_close(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = closedir(dir->dirp);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "closedir"),
+			   KeyValue_p("dirp", dir->dirp),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	dir->dirp = NULL;
 	RETURNi_(ret);
@@ -659,6 +711,12 @@ static KMETHOD DIR_getfd(KonohaContext *kctx, KonohaStack *sfp)
 	int fd = dirfd(dir->dirp);
 	if(fd == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "dirfd"),
+			   KeyValue_p("dirp", dir->dirp),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(fd);
 }
@@ -681,6 +739,12 @@ static KMETHOD DIR_read(KonohaContext *kctx, KonohaStack *sfp)
 	}
 	if(ret != 0) {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "readdir_r"),
+			   KeyValue_p("dirp", dirp),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURN_(a);
 }
@@ -712,6 +776,12 @@ static KMETHOD DIR_tell(KonohaContext *kctx, KonohaStack *sfp)
 	long ret = telldir(dirp);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+			   KeyValue_s("@", "telldir"),
+			   KeyValue_p("dirp", dirp),
+			   KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }

@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <errno.h>
 #include <grp.h>
 #ifdef __linux__
 #include <sys/wait.h>
@@ -72,6 +73,12 @@ static KMETHOD System_getpgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getpgid(pid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "getpgid"),
+				KeyValue_u("pid", pid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -83,6 +90,13 @@ static KMETHOD System_setpgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setpgid(pid, pgid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setpgid"),
+				KeyValue_u("pid", pid),
+				KeyValue_u("pid", pgid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -94,6 +108,12 @@ static KMETHOD System_chdir(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = chdir(dir);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "chdir"),
+				KeyValue_s("dir", dir),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -103,6 +123,12 @@ static KMETHOD System_fchdir(KonohaContext *kctx, KonohaStack *sfp)
 	int ch = fchdir(sfp[1].intValue);
 	if(ch == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "fchdir"),
+				KeyValue_s("fd", sfp[1].intValue),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ch);
 }
@@ -114,6 +140,12 @@ static KMETHOD System_chroot(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = chroot(root);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "chroot"),
+				KeyValue_s("root", root),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -126,6 +158,13 @@ static KMETHOD System_getpriority(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getpriority(which, who);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "getpriority"),
+				KeyValue_u("which", which),
+				KeyValue_u("who", who),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -138,6 +177,14 @@ static KMETHOD System_setpriority(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setpriority(which, who, priority);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setpriority"),
+				KeyValue_u("which", which),
+				KeyValue_u("who", who),
+				KeyValue_u("priority", priority),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -149,6 +196,13 @@ static KMETHOD System_getgroups(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getgroups(size, (gid_t *)(list->kintItems));
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "getgroups"),
+				KeyValue_u("size", size),
+				KeyValue_p("list", list->kintItems),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -160,6 +214,13 @@ static KMETHOD System_setgroups(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setgroups(size, (const gid_t *)(list->kintItems));
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setgroups"),
+				KeyValue_u("size", size),
+				KeyValue_p("list", list->kintItems),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -170,6 +231,11 @@ static KMETHOD System_fork(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = fork();
 	if(pid == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+				KeyValue_s("@", "fork"),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -181,6 +247,11 @@ static KMETHOD System_wait(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = wait(&status);
 	if(pid == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+				KeyValue_s("@", "wait"),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -194,6 +265,13 @@ static KMETHOD System_waitpid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = waitpid(target_pid, &status, options);
 	if(pid == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "waitpid"),
+				KeyValue_u("pid", target_pid),
+				KeyValue_p("options", options),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -205,6 +283,12 @@ static KMETHOD System_setuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setuid(uid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setuid"),
+				KeyValue_u("uid", uid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -216,6 +300,12 @@ static KMETHOD System_seteuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = seteuid(euid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "seteuid"),
+				KeyValue_u("euid", euid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -228,6 +318,13 @@ static KMETHOD System_setreuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setreuid(ruid, euid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setreuid"),
+				KeyValue_u("ruid", ruid),
+				KeyValue_p("euid", euid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -239,6 +336,12 @@ static KMETHOD System_setgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setgid(gid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setgid"),
+				KeyValue_u("gid", gid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -250,6 +353,12 @@ static KMETHOD System_setegid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setegid(egid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setegid"),
+				KeyValue_u("egid", egid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -262,6 +371,13 @@ static KMETHOD System_setregid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setregid(rgid, egid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "setregid"),
+				KeyValue_u("rgid", rgid),
+				KeyValue_u("egid", egid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -272,6 +388,11 @@ static KMETHOD System_setsid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t ret = setsid();
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault,
+				KeyValue_s("@", "setsid"),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -283,6 +404,12 @@ static KMETHOD System_getsid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t ret = getsid(pid);
 	if(ret == -1) {
 		// TODO: throw
+		ktrace(_SystemFault|_ScriptFault,
+				KeyValue_s("@", "getsid"),
+				KeyValue_u("pid", pid),
+				KeyValue_s("errstr", strerror(errno))
+		);
+		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
