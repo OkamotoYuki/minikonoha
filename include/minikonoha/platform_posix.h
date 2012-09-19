@@ -455,9 +455,6 @@ static void loadIconv(PlatformApiVar *plat)
 #endif /* _ICONV_H */
 }
 
-#define SMALLDATA 0
-#define BIGDATA   1
-
 static void monitorResource(int flag)
 {
 	return;
