@@ -140,8 +140,8 @@ static void keyIntHandler(int sig) { kill(fgPid, SIGINT); }
 #define MAXARGS            128				// the number maximum of parameters for spSplit
 #define BUFSIZE            64 * 1024		// the reading buffer size maximum for pipe
 #define DELAY              1000				// the adjustment value at the time of signal transmission
-#define DEF_TIMEOUT        10 * 1000		// default timeout valx
-//#define DEF_TIMEOUT -1
+//#define DEF_TIMEOUT        10 * 1000		// default timeout valx
+#define DEF_TIMEOUT -1
 #define ONEXEC(p)          ( (p != NULL) && (p->cpid > 0) ) ? 1 : 0
 #define PREEXEC(p)         ( (p != NULL) && (p->cpid == -1) ) ? 1 : 0
 #define WORD2INT(val)      (sizeof(val)==8) ? (val&0x7FFFFFFF)|((val>>32)&0x80000000) : val
