@@ -618,7 +618,7 @@ static uintptr_t logger(void *arg, ...)
 }
 
 #define trace(arg, ...) do {\
-	logger(p, __VA_ARGS__, LOG_END);\
+	logger(arg, __VA_ARGS__, LOG_END);\
 } while(0)
 
 // -------------------------------------------------------------------------
@@ -1776,15 +1776,13 @@ static void _monitorResource(int flag) {
 	switch(flag) {
 		case SMALLDATA:
 			trace(arg,
-					KeyValue_u("pid",           pid),
 					KeyValue_u("time",          getTime()),
-					KeyValue_u("cpu_usage",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
-					KeyValue_u("mem_usage",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
+					KeyValue_u("cpu_usage(%)",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
+					KeyValue_u("mem_usage(%)",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
 				);
 			break;
 		case BIGDATA:
 			trace(arg,
-					KeyValue_u("pid",           pid),
 					KeyValue_u("time",          getTime()),
 					KeyValue_u("procs_running", running),
 					KeyValue_u("procs_blocked", blocked),
@@ -1802,8 +1800,8 @@ static void _monitorResource(int flag) {
 					KeyValue_u("cpu_sy",     (unsigned)((100*dsys + divo2) / Div )),
 					KeyValue_u("cpu_id",     (unsigned)((100*didl + divo2) / Div )),
 					KeyValue_u("cpu_wa",     (unsigned)((100*diow + divo2) / Div )),
-					KeyValue_u("cpu_usage",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
-					KeyValue_u("mem_usage",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
+					KeyValue_u("cpu_usage(%)",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
+					KeyValue_u("mem_usage(%)",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
 				);
 			break;
 		default:
@@ -1921,6 +1919,12 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 		page_to_kb_shift++;
 	}
 	openlog("loggerkonoha", LOG_PID, LOG_LOCAL7); // for using syslog
+	void *arg;
+	trace(arg,
+			KeyValue_u("pid", pid),
+			KeyValue_u("ppid", getppid()),
+			KeyValue_u("uid", getuid())
+		 );
 	pthread_t logging_thread;
 	pthread_create(&logging_thread, NULL, monitor_func, (void *)konoha);
 
