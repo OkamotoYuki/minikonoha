@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.6)
+if(USE_LOGGER_PLATFORM)
+	add_executable(loggerkonoha command.c)
+	set(LOGGER_PLATFORM_EXTRA_LIBRARY minikonoha)
+	target_link_libraries(loggerkonoha ${LOGGER_PLATFORM_EXTRA_LIBRARY})
+	install(TARGETS loggerkonoha DESTINATION bin)
+endif(USE_LOGGER_PLATFORM)
