@@ -1743,7 +1743,7 @@ static unsigned page_to_kb_shift;
 
 #define PAGES_TO_KB(n)  (unsigned long)( (n) << page_to_kb_shift )
 
-static void _monitorResource(void) {
+static void _monitorResource(int flag) {
 	unsigned int hz = Hertz;
 	unsigned int running,blocked,dummy_1,dummy_2;
 	jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2], cpu_zzz[2];
@@ -1773,28 +1773,42 @@ static void _monitorResource(void) {
 	prochlp(p);
 	static void *arg;
 
-	trace(arg,
-			KeyValue_u("pid",           pid),
-			KeyValue_u("time",          getTime()),
-			KeyValue_u("procs_running", running),
-			KeyValue_u("procs_blocked", blocked),
-			KeyValue_u("memory_swpd",   unitConvert(kb_swap_used)),
-			KeyValue_u("memory_free",   unitConvert(kb_main_free)),
-			KeyValue_u("memory_buff",   unitConvert(kb_main_buffers)),
-			KeyValue_u("memory_cache",  unitConvert(kb_main_cached)),
-			KeyValue_u("swap_si",       (unsigned)( (*pswpin  * unitConvert(kb_per_page) * hz + divo2) / Div )),
-			KeyValue_u("swap_so",       (unsigned)( (*pswpout  * unitConvert(kb_per_page) * hz + divo2) / Div )),
-			KeyValue_u("io_bi",         (unsigned)( (*pgpgin                * hz + divo2) / Div )),
-			KeyValue_u("io_bo",         (unsigned)( (*pgpgout               * hz + divo2) / Div )),
-			KeyValue_u("system_in",     (unsigned)( (*intr                  * hz + divo2) / Div )),
-			KeyValue_u("system_cs",     (unsigned)( (*ctxt                  * hz + divo2) / Div )),
-			KeyValue_u("cpu_us",        (unsigned)( (100*duse                    + divo2) / Div )),
-			KeyValue_u("cpu_sy",        (unsigned)( (100*dsys                    + divo2) / Div )),
-			KeyValue_u("cpu_id",        (unsigned)( (100*didl                    + divo2) / Div )),
-			KeyValue_u("cpu_wa",        (unsigned)( (100*diow                    + divo2) / Div )),
-			KeyValue_u("cpu_usage",     (unsigned)( (float)p->pcpu * Frame_tscale)), // TODO to float
-			KeyValue_u("mem_usage",     (unsigned)( (float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
+	switch(flag) {
+		case SMALLDATA:
+			trace(arg,
+					KeyValue_u("pid",           pid),
+					KeyValue_u("time",          getTime()),
+					KeyValue_u("cpu_usage",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
+					KeyValue_u("mem_usage",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
 				);
+			break;
+		case BIGDATA:
+			trace(arg,
+					KeyValue_u("pid",           pid),
+					KeyValue_u("time",          getTime()),
+					KeyValue_u("procs_running", running),
+					KeyValue_u("procs_blocked", blocked),
+					KeyValue_u("memory_swpd",   unitConvert(kb_swap_used)),
+					KeyValue_u("memory_free",   unitConvert(kb_main_free)),
+					KeyValue_u("memory_buff",   unitConvert(kb_main_buffers)),
+					KeyValue_u("memory_cache",  unitConvert(kb_main_cached)),
+					KeyValue_u("swap_si",    (unsigned)((*pswpin  * unitConvert(kb_per_page) * hz + divo2) / Div )),
+					KeyValue_u("swap_so",    (unsigned)((*pswpout * unitConvert(kb_per_page) * hz + divo2) / Div )),
+					KeyValue_u("io_bi",      (unsigned)((*pgpgin  * hz + divo2) / Div )),
+					KeyValue_u("io_bo",      (unsigned)((*pgpgout * hz + divo2) / Div )),
+					KeyValue_u("system_in",  (unsigned)((*intr    * hz + divo2) / Div )),
+					KeyValue_u("system_cs",  (unsigned)((*ctxt    * hz + divo2) / Div )),
+					KeyValue_u("cpu_us",     (unsigned)((100*duse + divo2) / Div )),
+					KeyValue_u("cpu_sy",     (unsigned)((100*dsys + divo2) / Div )),
+					KeyValue_u("cpu_id",     (unsigned)((100*didl + divo2) / Div )),
+					KeyValue_u("cpu_wa",     (unsigned)((100*diow + divo2) / Div )),
+					KeyValue_u("cpu_usage",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
+					KeyValue_u("mem_usage",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
+				);
+			break;
+		default:
+			break;
+	}
 	return;
 }
 
@@ -1803,7 +1817,7 @@ static void _monitorResource(void) {
 static void *monitor_func(void *arg)
 {
 	while(true) {
-		_monitorResource();
+		_monitorResource(SMALLDATA);
 		sleep(1);
 	}
 	return NULL;

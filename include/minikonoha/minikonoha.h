@@ -245,7 +245,7 @@ struct PlatformApiVar {
 	// trace
 	void (*traceDataLog)(int, logconf_t *, ...);
 	// resource monitoring
-	void (*monitorResource)(void);
+	void (*monitorResource)(int flag);
 };
 
 #define LOG_END 0
