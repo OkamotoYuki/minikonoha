@@ -711,6 +711,12 @@ static KMETHOD Subproc_bg(KonohaContext *kctx, KonohaStack *sfp)
 		p->timeoutKill = 0;
 		p->bg = 1;
 		if ( (ret = proc_start(kctx, p)) != 0 ) {
+			ktrace(_SystemFault | _ScriptFault,
+				KeyValue_s("@", "Subproc.bg"),
+				KeyValue_s("command", S_text(p->command)),
+				KeyValue_u("status", p->status)
+			);
+			PLATAPI monitorResource(BIGDATA);
 //		KNH_NTRACE2(kctx, "package.subproc.bg ", K_PERROR, KNH_LDATA0);
 		}
 	}
@@ -731,6 +737,13 @@ static KMETHOD Subproc_fg(KonohaContext *kctx, KonohaStack *sfp)
 			killWait(p->cpid);
 //			KNH_NTHROW2(kctx, sfp, "Script!!", "subproc.fg :: timeout", K_FAILED, KNH_LDATA0);
 		}
+		if(p->status != 0) {
+			ktrace(_SystemFault | _ScriptFault,
+				KeyValue_s("@", "Subproc.fg"),
+				KeyValue_s("command", S_text(p->command)),
+				KeyValue_u("status", p->status)
+			);
+		}
 	}
 	RETURNi_( ret );
 }
@@ -747,7 +760,8 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 													 KNULL(String);
 		int pid = knh_popen(kctx, command, p, M_PIPE );
 		if(pid > 0 ) {
-			if(knh_wait(kctx, pid, 0, p->timeout, NULL ) == S_TIMEOUT ) {
+			int status = 0;
+			if(knh_wait(kctx, pid, 0, p->timeout, &status ) == S_TIMEOUT ) {
 				p->timeoutKill = 1;
 				killWait(pid);
 				clearFd(&p->r);
@@ -757,6 +771,14 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 						KeyValue_s("@", "TIMEOUT"),
 						KeyValue_u("errno", errno),
 						KeyValue_s("errstr", strerror(errno))
+				);
+				PLATAPI monitorResource(BIGDATA);
+			}
+			if(status != 0) {
+				ktrace(_SystemFault | _ScriptFault,
+					KeyValue_s("@", "Subproc.exec"),
+					KeyValue_s("command", S_text(p->command)),
+					KeyValue_u("status", status)
 				);
 				PLATAPI monitorResource(BIGDATA);
 			}
@@ -851,6 +873,15 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 			);
 			PLATAPI monitorResource(BIGDATA);
 		} else {
+			if(p->status != 0) {
+				ktrace(_SystemFault | _ScriptFault,
+					KeyValue_s("@", "Subproc.communicate"),
+					KeyValue_s("command", S_text(p->command)),
+					KeyValue_s("input", S_text(sfp[1].asString)),
+					KeyValue_u("status", p->status)
+				);
+				PLATAPI monitorResource(BIGDATA);
+			}
 			ret_a = (kArray*)KLIB new_kObject(kctx, CT_Array, 0);
 			if(p->r.mode == M_PIPE) {
 				char buf[BUFSIZE];
