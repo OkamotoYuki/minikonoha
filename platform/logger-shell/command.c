@@ -1794,7 +1794,8 @@ static void _monitorResource(int flag) {
 			trace(arg,
 					KeyValue_u("time",          getTime()),
 					KeyValue_f("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
-					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total))
+					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)),
+					KeyValue_u("mem_usage(kb)", (unsigned)PAGES_TO_KB(p->resident))
  				 );
 			break;
 		case BIGDATA:
@@ -1816,8 +1817,9 @@ static void _monitorResource(int flag) {
 					KeyValue_u("cpu_sy",     (unsigned)((100*dsys + divo2) / Div )),
 					KeyValue_u("cpu_id",     (unsigned)((100*didl + divo2) / Div )),
 					KeyValue_u("cpu_wa",     (unsigned)((100*diow + divo2) / Div )),
-					KeyValue_u("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
-					KeyValue_u("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total))
+					KeyValue_f("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
+					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)),
+					KeyValue_u("mem_usage(kb)", (unsigned)PAGES_TO_KB(p->resident))
  				 );
 			break;
 		default:
