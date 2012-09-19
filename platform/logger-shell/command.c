@@ -1937,9 +1937,11 @@ int main(int argc, char *argv[])
 		verbose_sugar = 1;
 		verbose_code = 1;
 	}
-	PlatformApi *plat = KonohaUtils_getDefaultPlatformApi();
-	KonohaContext* konoha = konoha_open(plat);
-	ret = konoha_parseopt(konoha, (PlatformApiVar*)plat, argc, argv);
+	PlatformApi *logger_platform = KonohaUtils_getDefaultPlatformApi();
+	PlatformApiVar *logger_platformVar = (PlatformApiVar *)logger_platform;
+	logger_platformVar->resourceMonitor = resourceMonitor;
+	KonohaContext* konoha = konoha_open(logger_platform);
+	ret = konoha_parseopt(konoha, logger_platformVar, argc, argv);
 	konoha_close(konoha);
 	return ret ? konoha_detectFailedAssert: 0;
 }

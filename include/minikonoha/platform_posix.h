@@ -498,6 +498,7 @@ static PlatformApi* KonohaUtils_getDefaultPlatformApi(void)
 	plat.shortText           = shortText;
 	plat.reportCaughtException = reportCaughtException;
 	plat.debugPrintf         = (!verbose_debug) ? NOP_debugPrintf : debugPrintf;
+	plat.resourceMonitor     = NULL;
 	return (PlatformApi*)(&plat);
 }
 
