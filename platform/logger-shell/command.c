@@ -567,11 +567,23 @@ static char *write_uint_toebuf(uintptr_t unboxValue, char *const p, const char *
 	return p + i;
 }
 
+static char *write_float_toebuf(float unboxValue, char *const p, const char *const end)
+{
+	char *pos = (char *)p;
+	char *e = (char *)end;
+	uintptr_t u = unboxValue;
+	pos = write_uint_toebuf(u, pos, e);
+	pos[0] = '.'; pos++;
+	uintptr_t f = (unboxValue * 1000000) - (u * 1000000);
+	return write_uint_toebuf(f, pos, e);
+}
+
 #define EBUFSIZ 1024
 
 #define LOG_END 0
 #define LOG_s   1
 #define LOG_u   2
+#define LOG_f   3
 
 static uintptr_t logger_p(void *arg, va_list ap)
 {
@@ -593,6 +605,10 @@ static uintptr_t logger_p(void *arg, va_list ap)
 			}
 			case LOG_u: {
 				p = write_uint_toebuf(va_arg(ap, uintptr_t), p, ebuf);
+				break;
+			}
+		case LOG_f: {
+				p = write_float_toebuf(va_arg(ap, double), p, ebuf);
 				break;
 			}
 			default:
@@ -1777,9 +1793,9 @@ static void _monitorResource(int flag) {
 		case SMALLDATA:
 			trace(arg,
 					KeyValue_u("time",          getTime()),
-					KeyValue_u("cpu_usage(%)",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
-					KeyValue_u("mem_usage(%)",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
-				);
+					KeyValue_f("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
+					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total))
+ 				 );
 			break;
 		case BIGDATA:
 			trace(arg,
@@ -1800,9 +1816,9 @@ static void _monitorResource(int flag) {
 					KeyValue_u("cpu_sy",     (unsigned)((100*dsys + divo2) / Div )),
 					KeyValue_u("cpu_id",     (unsigned)((100*didl + divo2) / Div )),
 					KeyValue_u("cpu_wa",     (unsigned)((100*diow + divo2) / Div )),
-					KeyValue_u("cpu_usage(%)",  (unsigned)((float)p->pcpu * Frame_tscale)), // TODO to float
-					KeyValue_u("mem_usage(%)",  (unsigned)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)) // TODO to float
-				);
+					KeyValue_u("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
+					KeyValue_u("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total))
+ 				 );
 			break;
 		default:
 			break;
