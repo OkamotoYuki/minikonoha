@@ -248,6 +248,10 @@ struct PlatformApiVar {
 	void (*monitorResource)(int flag);
 };
 
+// flags for resource monitoring
+#define SMALLDATA 0
+#define BIGDATA   1
+
 #define LOG_END 0
 #define LOG_s   1
 #define LOG_u   2
