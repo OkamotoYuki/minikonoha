@@ -852,30 +852,28 @@ KMETHOD Subproc_enableShellmode(KonohaContext *kctx, KonohaStack *sfp)
 	RETURNb_( ret );
 }
 
-//## boolean Subproc.setEnv(Map env);
-//KMETHOD Subproc_setEnv(KonohaContext *kctx, KonohaStack *sfp)
-//{
-//	kSubproc *sp = (kSubproc*)sfp[0].asObject;
-//	subprocData_t *p = sp->spd;
-//	int ret = PREEXEC(p);
-//	if ( ret ) {
-//		kDictMap *env = (kDictMap *)sfp[1].asObject;
-//		int i;
-//		size_t msize = env->spi->size(ctx, env->mapptr);
-//		if ( p->env != (kArray*)KNH_NULVAL(TY_Array) ) {
-//			knh_Array_clear( ctx, p->env, 0 );
-//		}
-//		p->env = new_Array(ctx, TY_String, msize);
-//		for (i = 0; i < msize; i++) {
-//			kString *key = (kString *)knh_DictMap_keyAt(env, i);
-//			kString *val = (kString *)knh_DictMap_valueAt(env, i);
-//			char buf[key->str.len + val->str.len + 2];
-//			snprintf(buf, sizeof(buf), "%s=%s", key->str.buf, val->str.buf);
-//			knh_Array_add( ctx, p->env, new_String(ctx, buf) );
-//		}
-//	}
-//	RETURNb_( ret );
-//}
+//## boolean Subproc.setEnv(String key, String val);
+static KMETHOD Subproc_setEnv(KonohaContext *kctx, KonohaStack *sfp)
+{
+	kSubproc *sp = (kSubproc*)sfp[0].asObject;
+	subprocData_t *p = sp->spd;
+	int ret = PREEXEC(p);
+	if ( ret ) {
+		if(p->env == KNULL(Array)) {
+			p->env = (kArray*)KLIB new_kObject(kctx, CT_StringArray, 0);
+		}
+		kString *key = sfp[1].asString;
+		kString *val = sfp[2].asString;
+		KUtilsWriteBuffer wb;
+		KLIB Kwb_init(&(kctx->stack->cwb), &wb);
+		KLIB Kwb_write(kctx, &wb, S_text(key), S_size(key));
+		KLIB Kwb_write(kctx, &wb, "=", 1);
+		KLIB Kwb_write(kctx, &wb, S_text(val), S_size(val));
+		KLIB kArray_add(kctx, p->env, KLIB new_kString(kctx, KLIB Kwb_top(kctx, &wb, 0), Kwb_bytesize(&wb), 0));
+		KLIB Kwb_free(&wb);
+	}
+	RETURNb_( ret );
+}
 
 //## boolean Subproc.setCwd(String cwd);
 KMETHOD Subproc_setCwd(KonohaContext *kctx, KonohaStack *sfp)
@@ -946,16 +944,17 @@ KMETHOD Subproc_setBufsize(KonohaContext *kctx, KonohaStack *sfp)
 //}
 
 //## boolean Subproc.setTimeout(int milisec);
-//KMETHOD Subproc_setTimeout(KonohaContext *kctx, KonohaStack *sfp)
-//{
-//	subprocData_t *p = (subprocData_t*)sfp[0].p->rawptr;
-//	int ret = PREEXEC(p);
-//	if(ret) {
-//		int time = WORD2INT(sfp[1].intValue);
-//		p->timeout = ( time > 0 ) ? time : 0;
-//	}
-//	RETURNb_( ret );
-//}
+static KMETHOD Subproc_setTimeout(KonohaContext *kctx, KonohaStack *sfp)
+{
+	kSubproc *sp = (kSubproc*)sfp[0].asObject;
+	subprocData_t *p = sp->spd;
+	int ret = PREEXEC(p);
+	if(ret) {
+		int time = WORD2INT(sfp[1].intValue);
+		p->timeout = ( time > 0 ) ? time : 0;
+	}
+	RETURNb_( ret );
+}
 
 ////## File Subproc.getIN();
 //KMETHOD Subproc_getIn(KonohaContext *kctx, KonohaStack *sfp)
@@ -1310,6 +1309,8 @@ static kbool_t subproc_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc
 		_Public|_Const|_Im, _F(Subproc_isStandardOUT), TY_boolean, TY_Subproc, MN_("isStandardOUT"), 0,
 		_Public|_Const|_Im, _F(Subproc_isStandardERR), TY_boolean, TY_Subproc, MN_("isStandardERR"), 0,
 		_Public|_Const|_Im, _F(Subproc_isERR2StdOUT), TY_boolean, TY_Subproc, MN_("isERR2StdOUT"), 0,
+		_Public|_Const|_Im, _F(Subproc_setTimeout), TY_boolean, TY_Subproc, MN_("setTimeout"), 1, TY_int, FN_("timeout"),
+		_Public|_Const|_Im, _F(Subproc_setEnv), TY_boolean, TY_Subproc, MN_("setEnv"), 2, TY_String, FN_("key"), TY_String, FN_("val"),
 		DEND,
 	};
 	KLIB kNameSpace_loadMethodData(kctx, ns, MethodData);
