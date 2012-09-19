@@ -1743,7 +1743,7 @@ static unsigned page_to_kb_shift;
 
 #define PAGES_TO_KB(n)  (unsigned long)( (n) << page_to_kb_shift )
 
-static void resourceMonitor(void) {
+static void _monitorResource(void) {
 	unsigned int hz = Hertz;
 	unsigned int running,blocked,dummy_1,dummy_2;
 	jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2], cpu_zzz[2];
@@ -1803,7 +1803,7 @@ static void resourceMonitor(void) {
 static void *monitor_func(void *arg)
 {
 	while(true) {
-		resourceMonitor();
+		_monitorResource();
 		sleep(1);
 	}
 	return NULL;
@@ -1939,7 +1939,7 @@ int main(int argc, char *argv[])
 	}
 	PlatformApi *logger_platform = KonohaUtils_getDefaultPlatformApi();
 	PlatformApiVar *logger_platformVar = (PlatformApiVar *)logger_platform;
-	logger_platformVar->resourceMonitor = resourceMonitor;
+	logger_platformVar->monitorResource = _monitorResource;
 	KonohaContext* konoha = konoha_open(logger_platform);
 	ret = konoha_parseopt(konoha, logger_platformVar, argc, argv);
 	konoha_close(konoha);
