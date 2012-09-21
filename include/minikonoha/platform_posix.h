@@ -455,6 +455,10 @@ static void loadIconv(PlatformApiVar *plat)
 #endif /* _ICONV_H */
 }
 
+static void monitorResource(pid_t pid, int flag)
+{
+}
+
 static PlatformApi* KonohaUtils_getDefaultPlatformApi(void)
 {
 	static PlatformApiVar plat = {};
@@ -498,6 +502,7 @@ static PlatformApi* KonohaUtils_getDefaultPlatformApi(void)
 	plat.shortText           = shortText;
 	plat.reportCaughtException = reportCaughtException;
 	plat.debugPrintf         = (!verbose_debug) ? NOP_debugPrintf : debugPrintf;
+	plat.monitorResource     = monitorResource;
 	return (PlatformApi*)(&plat);
 }
 

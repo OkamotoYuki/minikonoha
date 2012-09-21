@@ -244,7 +244,13 @@ struct PlatformApiVar {
 	void  (*debugPrintf)(const char *file, const char *func, int line, const char *fmt, ...) __PRINTFMT(4, 5);
 	// trace
 	void (*traceDataLog)(int, logconf_t *, ...);
+
+	// monitor resources
+	void (*monitorResource)(pid_t pid, int flag);
 };
+
+#define SMALLDATA 0
+#define BIGDATA   1
 
 #define LOG_END 0
 #define LOG_s   1
