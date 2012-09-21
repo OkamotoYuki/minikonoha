@@ -28,7 +28,7 @@
 #include "minikonoha/gc.h"
 #include <minikonoha/klib.h>
 #define USE_BUILTINTEST 1
-#include "testkonoha.h"
+#include "../shell/testkonoha.h"
 #include <getopt.h>
 #include <dlfcn.h>
 #include <sys/types.h>
