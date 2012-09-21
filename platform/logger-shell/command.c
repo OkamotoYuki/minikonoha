@@ -30,6 +30,9 @@
 #define USE_BUILTINTEST 1
 #include "testkonoha.h"
 #include <getopt.h>
+#include <dlfcn.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -637,11 +640,197 @@ static uintptr_t logger(void *arg, ...)
 } while(0)
 
 // -------------------------------------------------------------------------
-// ** resource monitor **
+// ** libproc **
 
-#include "version.h"
-#include "sysinfo.h"
-#include "readproc.h"
+#define KLONG long long    // not typedef; want "unsigned KLONG" to work
+#define P_G_SZ 20
+
+typedef struct proc_t {
+// 1st 16 bytes
+    int
+        tid,		// (special)       task id, the POSIX thread ID (see also: tgid)
+    	ppid;		// stat,status     pid of parent process
+    unsigned
+        pcpu;           // stat (special)  %CPU usage (is not filled in by readproc!!!)
+    char
+    	state,		// stat,status     single-char code for process state (S=sleeping)
+    	pad_1,		// n/a             padding
+    	pad_2,		// n/a             padding
+    	pad_3;		// n/a             padding
+// 2nd 16 bytes
+    unsigned long long
+	utime,		// stat            user-mode CPU time accumulated by process
+	stime,		// stat            kernel-mode CPU time accumulated by process
+// and so on...
+	cutime,		// stat            cumulative utime of process and reaped children
+	cstime,		// stat            cumulative stime of process and reaped children
+	start_time;	// stat            start time of process -- seconds since 1-1-70
+#ifdef SIGNAL_STRING
+    char
+	// Linux 2.1.7x and up have 64 signals. Allow 64, plus '\0' and padding.
+	signal[18],	// status          mask of pending signals, per-task for readtask() but per-proc for readproc()
+	blocked[18],	// status          mask of blocked signals
+	sigignore[18],	// status          mask of ignored signals
+	sigcatch[18],	// status          mask of caught  signals
+	_sigpnd[18];	// status          mask of PER TASK pending signals
+#else
+    long long
+	// Linux 2.1.7x and up have 64 signals.
+	signal,		// status          mask of pending signals, per-task for readtask() but per-proc for readproc()
+	blocked,	// status          mask of blocked signals
+	sigignore,	// status          mask of ignored signals
+	sigcatch,	// status          mask of caught  signals
+	_sigpnd;	// status          mask of PER TASK pending signals
+#endif
+    unsigned KLONG
+	start_code,	// stat            address of beginning of code segment
+	end_code,	// stat            address of end of code segment
+	start_stack,	// stat            address of the bottom of stack for the process
+	kstk_esp,	// stat            kernel stack pointer
+	kstk_eip,	// stat            kernel instruction pointer
+	wchan;		// stat (special)  address of kernel wait channel proc is sleeping in
+    long
+	priority,	// stat            kernel scheduling priority
+	nice,		// stat            standard unix nice level of process
+	rss,		// stat            resident set size from /proc/#/stat (pages)
+	alarm,		// stat            ?
+    // the next 7 members come from /proc/#/statm
+	size,		// statm           total # of pages of memory
+	resident,	// statm           number of resident set (non-swapped) pages (4k)
+	share,		// statm           number of pages of shared (mmap'd) memory
+	trs,		// statm           text resident set size
+	lrs,		// statm           shared-lib resident set size
+	drs,		// statm           data resident set size
+	dt;		// statm           dirty pages
+    unsigned long
+	vm_size,        // status          same as vsize in kb
+	vm_lock,        // status          locked pages in kb
+	vm_rss,         // status          same as rss in kb
+	vm_data,        // status          data size
+	vm_stack,       // status          stack size
+	vm_exe,         // status          executable size
+	vm_lib,         // status          library size (all pages, not just used ones)
+	rtprio,		// stat            real-time priority
+	sched,		// stat            scheduling class
+	vsize,		// stat            number of pages of virtual memory ...
+	rss_rlim,	// stat            resident set size limit?
+	flags,		// stat            kernel flags for the process
+	min_flt,	// stat            number of minor page faults since process start
+	maj_flt,	// stat            number of major page faults since process start
+	cmin_flt,	// stat            cumulative min_flt of process and child processes
+	cmaj_flt;	// stat            cumulative maj_flt of process and child processes
+    char
+	**environ,	// (special)       environment string vector (/proc/#/environ)
+	**cmdline;	// (special)       command line string vector (/proc/#/cmdline)
+    char
+	// Be compatible: Digital allows 16 and NT allows 14 ???
+    	euser[P_G_SZ],	// stat(),status   effective user name
+    	ruser[P_G_SZ],	// status          real user name
+    	suser[P_G_SZ],	// status          saved user name
+    	fuser[P_G_SZ],	// status          filesystem user name
+    	rgroup[P_G_SZ],	// status          real group name
+    	egroup[P_G_SZ],	// status          effective group name
+    	sgroup[P_G_SZ],	// status          saved group name
+    	fgroup[P_G_SZ],	// status          filesystem group name
+    	cmd[16];	// stat,status     basename of executable file in call to exec(2)
+    struct proc_t
+	*ring,		// n/a             thread group ring
+	*next;		// n/a             various library uses
+    int
+	pgrp,		// stat            process group id
+	session,	// stat            session id
+	nlwp,		// stat,status     number of threads, or 0 if no clue
+	tgid,		// (special)       task group ID, the POSIX PID (see also: tid)
+	tty,		// stat            full device number of controlling terminal
+        euid, egid,     // stat(),status   effective
+        ruid, rgid,     // status          real
+        suid, sgid,     // status          saved
+        fuid, fgid,     // status          fs (used for file access only)
+	tpgid,		// stat            terminal process group id
+	exit_signal,	// stat            might not be SIGCHLD
+	processor;      // stat            current (or most recent?) CPU
+} proc_t;
+
+typedef unsigned long long jiff;
+
+#if !defined(restrict) && __STDC_VERSION__ < 199901
+#if __GNUC__ > 2 || __GNUC_MINOR__ >= 92
+#define restrict __restrict__
+#else
+#warning No restrict keyword?
+#define restrict
+#endif
+#endif
+
+struct libproc {
+	// global variables
+	unsigned long long *Hertz;   /* clock tick frequency */
+	unsigned long *kb_main_buffers;
+	unsigned long *kb_main_cached;
+	unsigned long *kb_main_free;
+	unsigned long *kb_main_total;
+	unsigned long *kb_swap_used;
+
+	// API
+	void (*meminfo)(void);
+	void (*getstat)(jiff *restrict, jiff *restrict, jiff *restrict, jiff *restrict, jiff *restrict, jiff *restrict, jiff *restrict, jiff *restrict,
+			unsigned long *restrict, unsigned long *restrict, unsigned long *restrict, unsigned long *restrict,
+			unsigned *restrict, unsigned *restrict,
+			unsigned int *restrict, unsigned int *restrict,
+			unsigned int *restrict, unsigned int *restrict);
+	proc_t *(*get_proc_stats)(pid_t, proc_t*);
+};
+
+static struct libproc LIBPROC;
+
+void libproc_init(void) {
+	void *handler;
+	handler = dlopen("/lib/libproc-3.2.8.so", RTLD_LAZY);
+	if(!handler) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.Hertz = dlsym(handler, "Hertz"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.kb_main_buffers = dlsym(handler, "kb_main_buffers"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.kb_main_cached = dlsym(handler, "kb_main_cached"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.kb_main_free = dlsym(handler, "kb_main_free"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.kb_main_total = dlsym(handler, "kb_main_total"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.kb_swap_used = dlsym(handler, "kb_swap_used"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.meminfo = dlsym(handler, "meminfo"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.getstat = dlsym(handler, "getstat"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+	if(!(LIBPROC.get_proc_stats = dlsym(handler, "get_proc_stats"))) {
+		fprintf(stderr, "%s\n", dlerror());
+		exit(1);
+	}
+}
+
+
+// -------------------------------------------------------------------------
+// ** resource monitor **
 
 typedef unsigned long long TIC_t;
 static float     Frame_tscale;          // so we can '*' vs. '/' WHEN 'pcpu'
@@ -664,7 +853,7 @@ static void prochlp (proc_t *this)
 
 // if in Solaris mode, adjust our scaling for all cpus
 //   Frame_tscale = 100.0f / ((float)Hertz * (float)et * (Rc.mode_irixps ? 1 : Cpu_tot));
-   Frame_tscale = 100.0f / ((float)Hertz * (float)et);
+   Frame_tscale = 100.0f / ((float)*(LIBPROC.Hertz) * (float)et);
    if(!this) return;
 
    /* calculate time in this process; the sum of user time (utime) and
@@ -706,7 +895,7 @@ static unsigned page_to_kb_shift;
 #define PAGES_TO_KB(n)  (unsigned long)( (n) << page_to_kb_shift )
 
 static void _monitorResource(pid_t pid, int flag) {
-	unsigned int hz = Hertz;
+	unsigned int hz = *(LIBPROC.Hertz);
 	unsigned int running,blocked,dummy_1,dummy_2;
 	static jiff cpu_use[2], cpu_nic[2], cpu_sys[2], cpu_idl[2], cpu_iow[2], cpu_xxx[2], cpu_yyy[2], cpu_zzz[2];
 	jiff duse, dsys, didl, diow, dstl, Div, divo2;
@@ -721,10 +910,10 @@ static void _monitorResource(pid_t pid, int flag) {
 	unsigned swap_si, swap_so, io_bi, io_bo, system_in, system_cs;
 	static unsigned cpu_us, cpu_sy, cpu_id, cpu_wa;
 
-	meminfo();
+	LIBPROC.meminfo();
 
 	if(isFirst) {
-		getstat(cpu_use,cpu_nic,cpu_sys,cpu_idl,cpu_iow,cpu_xxx,cpu_yyy,cpu_zzz,
+		LIBPROC.getstat(cpu_use,cpu_nic,cpu_sys,cpu_idl,cpu_iow,cpu_xxx,cpu_yyy,cpu_zzz,
 				pgpgin,pgpgout,pswpin,pswpout,
 				intr,ctxt,
 				&running,&blocked,
@@ -751,7 +940,7 @@ static void _monitorResource(pid_t pid, int flag) {
 	}
 	else {
 		tog= !tog;
-		getstat(cpu_use+tog,cpu_nic+tog,cpu_sys+tog,cpu_idl+tog,cpu_iow+tog,cpu_xxx+tog,cpu_yyy+tog,cpu_zzz+tog,
+		LIBPROC.getstat(cpu_use+tog,cpu_nic+tog,cpu_sys+tog,cpu_idl+tog,cpu_iow+tog,cpu_xxx+tog,cpu_yyy+tog,cpu_zzz+tog,
 				pgpgin+tog,pgpgout+tog,pswpin+tog,pswpout+tog,
 				intr+tog,ctxt+tog,
 				&running,&blocked,
@@ -789,7 +978,7 @@ static void _monitorResource(pid_t pid, int flag) {
 
 	proc_t *p = (proc_t *)alloca(sizeof(proc_t));
 //	p = simple_readproc(p);
-	p = get_proc_stats(pid, p);
+	p = LIBPROC.get_proc_stats(pid, p);
 	prochlp(p);
 	static void *arg;
 
@@ -798,7 +987,7 @@ static void _monitorResource(pid_t pid, int flag) {
 			trace(arg,
 					KeyValue_u("time",          getTime()),
 					KeyValue_f("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
-					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)),
+					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / *(LIBPROC.kb_main_total))),
 					KeyValue_u("mem_usage(kb)", (unsigned)PAGES_TO_KB(p->resident))
  				 );
 			break;
@@ -807,10 +996,10 @@ static void _monitorResource(pid_t pid, int flag) {
 					KeyValue_u("time",          getTime()),
 					KeyValue_u("procs_running", running),
 					KeyValue_u("procs_blocked", blocked),
-					KeyValue_u("memory_swpd",   unitConvert(kb_swap_used)),
-					KeyValue_u("memory_free",   unitConvert(kb_main_free)),
-					KeyValue_u("memory_buff",   unitConvert(kb_main_buffers)),
-					KeyValue_u("memory_cache",  unitConvert(kb_main_cached)),
+					KeyValue_u("memory_swpd",   unitConvert(*(LIBPROC.kb_swap_used))),
+					KeyValue_u("memory_free",   unitConvert(*(LIBPROC.kb_main_free))),
+					KeyValue_u("memory_buff",   unitConvert(*(LIBPROC.kb_main_buffers))),
+					KeyValue_u("memory_cache",  unitConvert(*(LIBPROC.kb_main_cached))),
 					KeyValue_u("swap_si",    swap_si),
 					KeyValue_u("swap_so",    swap_so),
 					KeyValue_u("io_bi",      io_bi),
@@ -822,7 +1011,7 @@ static void _monitorResource(pid_t pid, int flag) {
 					KeyValue_u("cpu_id",     cpu_id),
 					KeyValue_u("cpu_wa",     cpu_wa),
 					KeyValue_f("cpu_usage(%)",  (float)((float)p->pcpu * Frame_tscale)),
-					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / kb_main_total)),
+					KeyValue_f("mem_usage(%)",  (float)((float)PAGES_TO_KB(p->resident) * 100 / *(LIBPROC.kb_main_total))),
 					KeyValue_u("mem_usage(kb)", (unsigned)PAGES_TO_KB(p->resident))
  				 );
 			break;
@@ -844,6 +1033,7 @@ static void *monitor_func(void *arg)
 }
 
 // -------------------------------------------------------------------------
+// ** parse args **
 
 static struct option long_options2[] = {
 	/* These options set a flag. */
@@ -934,6 +1124,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	scriptidx = optind;
 	CommandLine_setARGV(konoha, argc - scriptidx, argv + scriptidx);
 
+	libproc_init();
 	thispid = getpid();
 	Page_size = getpagesize(); // for mem usage
 	int i = Page_size;
