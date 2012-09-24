@@ -138,7 +138,6 @@ static void keyIntHandler(int sig) { kill(fgPid, SIGINT); }
 
 // subproc macro
 #define MAXARGS            128				// the number maximum of parameters for spSplit
-#define BUFSIZE            64 * 1024		// the reading buffer size maximum for pipe
 #define DELAY              1000				// the adjustment value at the time of signal transmission
 //#define DEF_TIMEOUT        10 * 1000		// default timeout valx
 #define DEF_TIMEOUT -1
@@ -784,7 +783,7 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 				PLATAPI monitorResource(getpid());
 			}
 			else if ( (p->r.mode == M_PIPE) || (p->r.mode == M_DEFAULT) ) {
-				char buf[BUFSIZE] = {0};
+				char buf[K_PAGESIZE] = {0};
 				if(fread(buf, sizeof(char), sizeof(buf)-1, p->r.fp) > 0) {
 					ret_s = KLIB new_kString(kctx, buf, strlen(buf), 0);
 				}
@@ -828,6 +827,21 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 	RETURN_( ret_s );
 }
 
+static kbool_t kPipeRead(KonohaContext *kctx, kArray *a, FILE *fp)
+{
+	char buf[K_PAGESIZE];
+	while(1) {
+		size_t size = fread(buf, 1, sizeof(buf), fp);
+		if(size > 0) {
+			KLIB kArray_add(kctx, a, KLIB new_kString(kctx, buf, size, 0));
+		}
+		else {
+			break;
+		}
+	}
+	return ferror(fp) == 0;
+}
+
 //## @Throwable String[] Subproc.communicate(String input);
 static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 {
@@ -844,10 +858,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 #else
 			sig_t oldset = signal(SIGPIPE, SIG_IGN);
 #endif
-			// WARN??
-			kBytes* ba = (kBytes*)KLIB new_kObject(kctx, CT_Bytes, S_size(s));
-			memcpy(ba->buf, s->utext, S_size(s));
-			if(fwrite(ba->buf, sizeof(char), ba->bytesize, p->w.fp) > 0) {
+			if(fwrite(S_text(s), sizeof(char), S_size(s), p->w.fp) > 0) {
 				fputc('\n', p->w.fp);
 				fflush(p->w.fp);
 				fsync(fileno(p->w.fp));
@@ -885,38 +896,26 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 			}
 			ret_a = (kArray*)KLIB new_kObject(kctx, CT_Array, 0);
 			if(p->r.mode == M_PIPE) {
-				char buf[BUFSIZE];
-				memset(buf, 0x00, sizeof(buf));
-				// what if there's more than bufsize output?!
-				if(fread(buf, sizeof(char), sizeof(buf)-1, p->r.fp) > 0) {
-					KLIB kArray_add(kctx, ret_a, KLIB new_kString(kctx, buf, BUFSIZE, 0));//TODO!
-				}
-				else {
-					KLIB kArray_add(kctx, ret_a, KNULL(String));
-					KTrace(SystemFault, 0,
-							LogText("@", "fread"),
-							LogUint("errno", errno),
-							LogText("errstr", strerror(errno))
+				if(!kPipeRead(kctx, ret_a, p->r.fp)) {
+					KTraceApi(SystemFault, "Subproc.communicate",
+							LogText("@", "fread")
 					);
 					PLATAPI monitorResource(getpid());
-//					KNH_NTRACE2(ctx, "package.subprocess.communicate.fread ", K_PERROR, KNH_LDATA0);
 				}
 			}
 			else {
-				KLIB kArray_add(kctx,  ret_a, KNULL(String));
+				KLIB kArray_add(kctx, ret_a, KNULL(String));
 			}
 			if(p->e.mode == M_PIPE) {
-				char buf[BUFSIZE];
-				memset(buf, 0x00, sizeof(buf));
-				if(fread(buf, sizeof(char), sizeof(buf)-1, p->e.fp) > 0) {
-					KLIB kArray_add(kctx, ret_a, KLIB new_kString(kctx, buf, BUFSIZE, 0)); // TODO!
-				} else {
-					KLIB kArray_add(kctx, ret_a, KNULL(String));
-//					KNH_NTRACE2(ctx, "package.subprocess.communicate.fread ", K_PERROR, KNH_LDATA0);
+				if(!kPipeRead(kctx, ret_a, p->e.fp)) {
+					KTraceApi(SystemFault, "Subproc.communicate",
+							LogText("@", "fread")
+					);
+					PLATAPI monitorResource(getpid());
 				}
 			}
 			else {
-				KLIB kArray_add(kctx, ret_a, KNULL(Object));
+				KLIB kArray_add(kctx, ret_a, KNULL(String));
 			}
 		}
 	}
@@ -1100,7 +1099,20 @@ static KMETHOD Subproc_getReturncode(KonohaContext *kctx, KonohaStack *sfp)
 {
 	kSubproc *sp = (kSubproc*)sfp[0].asObject;
 	subprocData_t *p = sp->spd;
-	RETURNi_( (p!= NULL) ? p->status : -1 );
+	kint_t ret;
+	if(WIFEXITED(p->status)) {
+		ret = WEXITSTATUS(p->status);
+	}
+	else if(WIFSIGNALED(p->status)) {
+		ret = WTERMSIG(p->status) * -1;
+	}
+	else if(WIFSTOPPED(p->status)) {
+		ret = WSTOPSIG(p->status) * -1;
+	}
+	else {
+		ret = p->status;
+	}
+	RETURNi_( ret );
 }
 
 //## boolean Subproc.enablePipemodeIN(Boolean isPipemode);
