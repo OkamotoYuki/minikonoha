@@ -53,185 +53,7 @@ extern int verbose_sugar;
 extern int verbose_gc;
 
 #include <minikonoha/platform.h>
-
-// -------------------------------------------------------------------------
-// minishell
-
-static char *(*kreadline)(const char *);
-static int  (*kadd_history)(const char *);
-
-static char* readline(const char* prompt)
-{
-	static int checkCTL = 0;
-	int ch, pos = 0;
-	static char linebuf[1024]; // THREAD-UNSAFE
-	fputs(prompt, stdout);
-	while((ch = fgetc(stdin)) != EOF) {
-		if(ch == '\r') continue;
-		if(ch == 27) {
-			/* ^[[A */;
-			fgetc(stdin); fgetc(stdin);
-			if(checkCTL == 0) {
-				fprintf(stdout, " - use readline, it provides better shell experience.\n");
-				checkCTL = 1;
-			}
-			continue;
-		}
-		if(ch == '\n' || pos == sizeof(linebuf) - 1) {
-			linebuf[pos] = 0;
-			break;
-		}
-		linebuf[pos] = ch;
-		pos++;
-	}
-	if(ch == EOF) return NULL;
-	char *p = (char*)malloc(pos+1);
-	memcpy(p, linebuf, pos+1);
-	return p;
-}
-
-static int add_history(const char* line)
-{
-	return 0;
-}
-
-static int checkstmt(const char *t, size_t len)
-{
-	size_t i = 0;
-	int ch, quote = 0, nest = 0;
-	L_NORMAL:
-	for(; i < len; i++) {
-		ch = t[i];
-		if(ch == '{' || ch == '[' || ch == '(') nest++;
-		if(ch == '}' || ch == ']' || ch == ')') nest--;
-		if(ch == '\'' || ch == '"' || ch == '`') {
-			if(t[i+1] == ch && t[i+2] == ch) {
-				quote = ch; i+=2;
-				goto L_TQUOTE;
-			}
-		}
-	}
-	return nest;
-	L_TQUOTE:
-	DBG_ASSERT(i > 0);
-	for(; i < len; i++) {
-		ch = t[i];
-		if(t[i-1] != '\\' && ch == quote) {
-			if(t[i+1] == ch && t[i+2] == ch) {
-				i+=2;
-				goto L_NORMAL;
-			}
-		}
-	}
-	return 1;
-}
-
-static kstatus_t readstmt(KonohaContext *kctx, KUtilsWriteBuffer *wb, kfileline_t *uline)
-{
-	int line = 1;
-	kstatus_t status = K_CONTINUE;
-//	fputs(TERM_BBOLD(kctx), stdout);
-	while(1) {
-		int check;
-		char *ln = kreadline(line == 1 ? ">>> " : "    ");
-		if(ln == NULL) {
-			KLIB Kwb_free(wb);
-			status = K_BREAK;
-			break;
-		}
-		if(line > 1) kwb_putc(wb, '\n');
-		KLIB Kwb_write(kctx, wb, ln, strlen(ln));
-		free(ln);
-		if((check = checkstmt(KLIB Kwb_top(kctx, wb, 0), Kwb_bytesize(wb))) > 0) {
-			uline[0]++;
-			line++;
-			continue;
-		}
-		if(check < 0) {
-			fputs("(Cancelled)...\n", stdout);
-			KLIB Kwb_free(wb);
-		}
-		break;
-	}
-	if(Kwb_bytesize(wb) > 0) {
-		kadd_history(KLIB Kwb_top(kctx, wb, 1));
-	}
-//	fputs(TERM_EBOLD(kctx), stdout);
-	fflush(stdout);
-	uline[0]++;
-	return status;
-}
-
-static void dumpEval(KonohaContext *kctx, KUtilsWriteBuffer *wb)
-{
-	KonohaStackRuntimeVar *base = kctx->stack;
-	ktype_t ty = base->evalty;
-	if(ty != TY_void) {
-		KonohaStack *lsfp = base->stack + base->evalidx;
-		CT_(ty)->p(kctx, lsfp, 0, wb, P_DUMP);
-		fflush(stdout);
-		fprintf(stdout, "TYPE=%s EVAL=%s\n", TY_t(ty), KLIB Kwb_top(kctx, wb,1));
-	}
-}
-
-static void shell(KonohaContext *kctx)
-{
-	KUtilsWriteBuffer wb;
-	KLIB Kwb_init(&(kctx->stack->cwb), &wb);
-	kfileline_t uline = FILEID_("(shell)") | 1;
-	while(1) {
-		kfileline_t inc = 0;
-		kstatus_t status = readstmt(kctx, &wb, &inc);
-		if(status == K_BREAK) break;
-		if(status == K_CONTINUE && Kwb_bytesize(&wb) > 0) {
-			status = konoha_eval((KonohaContext*)kctx, KLIB Kwb_top(kctx, &wb, 1), uline);
-			uline += inc;
-			KLIB Kwb_free(&wb);
-			if(status != K_FAILED) {
-				dumpEval(kctx, &wb);
-				KLIB Kwb_free(&wb);
-			}
-		}
-	}
-	KLIB Kwb_free(&wb);
-	fprintf(stdout, "\n");
-	return;
-}
-
-static void show_version(KonohaContext *kctx)
-{
-	int i;
-	fprintf(stdout, K_PROGNAME " " K_VERSION " (%s) (%x, %s)\n", K_CODENAME, K_REVISION, __DATE__);
-	fprintf(stdout, "[gcc %s]\n", __VERSION__);
-	fprintf(stdout, "options:");
-	for(i = 0; i < KonohaModule_MAXSIZE; i++) {
-		if(kctx->modshare[i] != NULL) {
-			fprintf(stdout, " %s", kctx->modshare[i]->name);
-		}
-	}
-	fprintf(stdout, "\n");
-}
-
-static kbool_t konoha_shell(KonohaContext* konoha)
-{
-#ifdef __MINGW32__
-	void *handler = (void *)LoadLibraryA((LPCTSTR)"libreadline" K_OSDLLEXT);
-	void *f = (handler != NULL) ? (void *)GetProcAddress(handler, "readline") : NULL;
-	kreadline = (f != NULL) ? (char* (*)(const char*))f : readline;
-	f = (handler != NULL) ? (void *)GetProcAddress(handler, "add_history") : NULL;	
-	kadd_history = (f != NULL) ? (int (*)(const char*))f : add_history;
-#else
-	void *handler = dlopen("libreadline" K_OSDLLEXT, RTLD_LAZY);
-	void *f = (handler != NULL) ? dlsym(handler, "readline") : NULL;
-	kreadline = (f != NULL) ? (char* (*)(const char*))f : readline;
-	f = (handler != NULL) ? dlsym(handler, "add_history") : NULL;
-	kadd_history = (f != NULL) ? (int (*)(const char*))f : add_history;
-#endif
-	show_version(konoha);
-	shell(konoha);
-	return true;
-}
-
+#include <minikonoha/libcode/minishell.h>
 
 // -------------------------------------------------------------------------
 // KonohaContext*est
@@ -520,7 +342,7 @@ static void CommandLine_setARGV(KonohaContext *kctx, int argc, char** argv)
 //	}
 //	return p;
 //}
-//
+
 //static char *write_text_toebuf(const char *s, char *p, char *ebuf)
 //{
 //	if(p < ebuf) { p[0] = '"'; p++; }
@@ -541,7 +363,7 @@ static void CommandLine_setARGV(KonohaContext *kctx, int argc, char** argv)
 //	if(p < ebuf) { p[0] = '"'; p++; }
 //	return p;
 //}
-//
+
 //static void reverse(char *const start, char *const end, const int len)
 //{
 //	int i, l = len / 2;
@@ -553,7 +375,7 @@ static void CommandLine_setARGV(KonohaContext *kctx, int argc, char** argv)
 //		*e-- = tmp;
 //	}
 //}
-//
+
 //static char *write_uint_toebuf(uintptr_t unboxValue, char *const p, const char *const end)
 //{
 //	int i = 0;
@@ -569,24 +391,75 @@ static void CommandLine_setARGV(KonohaContext *kctx, int argc, char** argv)
 //	return p + i;
 //}
 
-static char *write_float_toebuf(float unboxValue, char *const p, const char *const end)
+static char *writeFloatToBuffer(float f, char *const buftop, const char *const bufend)
 {
-	char *pos = (char *)p;
-	char *e = (char *)end;
-	uintptr_t u = unboxValue;
-	pos = write_uint_toebuf(u, pos, e);
+	char *pos = (char *)buftop;
+	char *e = (char *)bufend;
+	uintptr_t u = f;
+	pos = writeUnsingedIntToBuffer(u, pos, e);
 	pos[0] = '.'; pos++;
-	uintptr_t f = (unboxValue * 1000000) - (u * 1000000);
-	return write_uint_toebuf(f, pos, e);
+	uintptr_t decimal = (f * 1000000) - (u * 1000000);
+	return writeUnsingedIntToBuffer(decimal, pos, e);
 }
 
-//#define EBUFSIZ 1024
-//
 //#define LOG_END 0
 //#define LOG_s   1
 //#define LOG_u   2
-//#define LOG_f   3
-//
+#define LOG_f 4
+
+static void writeResourceDataLogToBuffer(void *arg, va_list ap, char *buftop, char *bufend)
+{
+	int c = 0, logtype;
+	buftop[0] = '{'; buftop++;
+//	buftop = writePolicyToBuffer(logconf, buftop, bufend);
+	while((logtype = va_arg(ap, int)) != LOG_END) {
+		if(c > 0 && buftop + 3 < bufend) {
+			buftop[0] = ',';
+			buftop[1] = ' ';
+			buftop+=2;
+		}
+		switch(logtype) {
+		case LOG_s: {
+			const char *key = va_arg(ap, const char*);
+			const char *text = va_arg(ap, const char*);
+			buftop = writeKeyToBuffer(key, strlen(key), buftop, bufend);
+			buftop = writeTextToBuffer(text, buftop, bufend);
+			break;
+		}
+		case LOG_u: {
+			const char *key = va_arg(ap, const char*);
+			buftop = writeKeyToBuffer(key, strlen(key), buftop, bufend);
+			buftop = writeUnsingedIntToBuffer(va_arg(ap, uintptr_t), buftop, bufend);
+			break;
+		}
+		case LOG_f: {
+			const char *key = va_arg(ap, const char*);
+			buftop = writeKeyToBuffer(key, strlen(key), buftop, bufend);
+			buftop = writeFloatToBuffer(va_arg(ap, double), buftop, bufend);
+			break;
+		}
+		}
+		c++;
+	}
+	buftop[0] = '}'; buftop++;
+	buftop[0] = '\0';
+}
+
+#define EBUFSIZ 1024
+
+static void traceResourceDataLog(/*void *logger, int logkey,*/ void *arg, ...)
+{
+	char buf[EBUFSIZ];
+	va_list ap;
+	va_start(ap, arg);
+	writeResourceDataLogToBuffer(arg, ap, buf, buf + (EBUFSIZ - 4));
+	syslog(LOG_NOTICE, "%s", buf);
+	if(verbose_debug) {
+		fprintf(stderr, "TRACE %s\n", buf);
+	}
+	va_end(ap);
+}
+
 //static uintptr_t logger_p(void *arg, va_list ap)
 //{
 //	char buf[EBUFSIZ], *p = buf, *ebuf =  p + (EBUFSIZ - 4);
@@ -625,7 +498,7 @@ static char *write_float_toebuf(float unboxValue, char *const p, const char *con
 //	syslog(LOG_NOTICE, "%s", buf);
 //	return 0;// FIXME reference to log
 //}
-//
+
 //static uintptr_t logger(void *arg, ...)
 //{
 //	va_list ap;
@@ -635,10 +508,9 @@ static char *write_float_toebuf(float unboxValue, char *const p, const char *con
 //	return ref;
 //}
 
-//#define trace(arg, ...) do {\
-//	logger(arg, __VA_ARGS__, LOG_END);\
-//} while(0)
-#define trace(arg, ...)
+#define trace(arg, ...) do {\
+	traceResourceDataLog(arg, __VA_ARGS__, LOG_END);\
+} while(0)
 
 // -------------------------------------------------------------------------
 // ** libproc **
@@ -997,7 +869,7 @@ static void _monitorResource(pid_t pid) {
 	kb_mem_usage      = (unsigned)PAGES_TO_KB(p->resident);
 
 	static void *arg;
-	trace(arg,
+	trace(&arg,
 			KeyValue_u("time",          getTime()),
 			KeyValue_u("procs_running", running),
 			KeyValue_u("procs_blocked", blocked),
