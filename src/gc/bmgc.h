@@ -39,9 +39,9 @@
 extern "C" {
 #endif
 
-#if defined(GCDEBUG) && !defined(GCSTAT)
+//#if defined(GCDEBUG) && !defined(GCSTAT)
 #define GCSTAT 1
-#endif
+//#endif
 
 //#define MEMORY_DEBUG 1
 
@@ -1909,6 +1909,14 @@ static void bitmapMarkingGC(KonohaContext *kctx, HeapManager *mng, enum gc_mode 
 	gc_stat("%sGC(%" PREFIX_d ") HeapSize=%" PREFIX_d" MB, last_collected=%" PREFIX_d", marked=%"PREFIX_d,
 			(mode & GC_MAJOR)?"major":"minor",
 			global_gc_stat.gc_count, (heap_size/MB_), collected, marked);
+	KTrace(isRecord,
+			LogText("@", "bitmapMarkingGC"),
+			LogUint("time", PLATAPI getTimeMilliSecond()),
+			LogUint((mode & GC_MAJOR)?"major":"minor" "GC", global_gc_stat.gc_count),
+			LogUint("HeapSize(MB)", (heap_size/MB_)),
+			LogUint("last_collected", collected),
+			LogUint("marked", marked)
+		  );
 #endif
 	bitmap_reset(&((KonohaContextVar*)kctx)->safepoint, 0);
 }
