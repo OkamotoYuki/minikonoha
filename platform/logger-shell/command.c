@@ -512,36 +512,36 @@ static void CommandLine_setARGV(KonohaContext *kctx, int argc, char** argv)
 // -------------------------------------------------------------------------
 // ** logger **
 
-static char *write_byte_toebuf(const char *text, size_t len, char *p, char *ebuf)
-{
-	if(ebuf - p > len) {
-		memcpy(p, text, len);
-		return p+len;
-	}
-	return p;
-}
-
-static char *write_text_toebuf(const char *s, char *p, char *ebuf)
-{
-	if(p < ebuf) { p[0] = '"'; p++; }
-	while(*s != 0 && p < ebuf) {
-		if(*s == '"') {
-			p[0] = '\"'; p++;
-			if(p < ebuf) {p[0] = s[0]; p++;}
-		}
-		else if(*s == '\n') {
-			p[0] = '\\'; p++;
-			if(p < ebuf) {p[0] = 'n'; p++;}
-		}
-		else {
-			p[0] = s[0]; p++;
-		}
-		s++;
-	}
-	if(p < ebuf) { p[0] = '"'; p++; }
-	return p;
-}
-
+//static char *write_byte_toebuf(const char *text, size_t len, char *p, char *ebuf)
+//{
+//	if(ebuf - p > len) {
+//		memcpy(p, text, len);
+//		return p+len;
+//	}
+//	return p;
+//}
+//
+//static char *write_text_toebuf(const char *s, char *p, char *ebuf)
+//{
+//	if(p < ebuf) { p[0] = '"'; p++; }
+//	while(*s != 0 && p < ebuf) {
+//		if(*s == '"') {
+//			p[0] = '\"'; p++;
+//			if(p < ebuf) {p[0] = s[0]; p++;}
+//		}
+//		else if(*s == '\n') {
+//			p[0] = '\\'; p++;
+//			if(p < ebuf) {p[0] = 'n'; p++;}
+//		}
+//		else {
+//			p[0] = s[0]; p++;
+//		}
+//		s++;
+//	}
+//	if(p < ebuf) { p[0] = '"'; p++; }
+//	return p;
+//}
+//
 //static void reverse(char *const start, char *const end, const int len)
 //{
 //	int i, l = len / 2;
@@ -553,21 +553,21 @@ static char *write_text_toebuf(const char *s, char *p, char *ebuf)
 //		*e-- = tmp;
 //	}
 //}
-
-static char *write_uint_toebuf(uintptr_t unboxValue, char *const p, const char *const end)
-{
-	int i = 0;
-	while (p + i < end) {
-		int tmp = unboxValue % 10;
-		unboxValue /= 10;
-		p[i] = '0' + tmp;
-		++i;
-		if (unboxValue == 0)
-			break;
-	}
-	reverse(p, p + i, i);
-	return p + i;
-}
+//
+//static char *write_uint_toebuf(uintptr_t unboxValue, char *const p, const char *const end)
+//{
+//	int i = 0;
+//	while (p + i < end) {
+//		int tmp = unboxValue % 10;
+//		unboxValue /= 10;
+//		p[i] = '0' + tmp;
+//		++i;
+//		if (unboxValue == 0)
+//			break;
+//	}
+//	reverse(p, p + i, i);
+//	return p + i;
+//}
 
 static char *write_float_toebuf(float unboxValue, char *const p, const char *const end)
 {
@@ -580,64 +580,65 @@ static char *write_float_toebuf(float unboxValue, char *const p, const char *con
 	return write_uint_toebuf(f, pos, e);
 }
 
-#define EBUFSIZ 1024
+//#define EBUFSIZ 1024
+//
+//#define LOG_END 0
+//#define LOG_s   1
+//#define LOG_u   2
+//#define LOG_f   3
+//
+//static uintptr_t logger_p(void *arg, va_list ap)
+//{
+//	char buf[EBUFSIZ], *p = buf, *ebuf =  p + (EBUFSIZ - 4);
+//	p[0] = '{'; p++;
+//	{
+//		int c = 0, logtype;
+//		while((logtype = va_arg(ap, int)) != LOG_END) {
+//			const char *key = va_arg(ap, const char*);
+//			if(c > 0 && p + 3 < ebuf) { p[0] = ','; p[1] = ' '; p+=2; }
+//			if(p < ebuf) { p[0] = '"'; p++; }
+//			p = write_byte_toebuf(key, strlen(key), p, ebuf);
+//			if(p + 3 < ebuf) { p[0] = '"'; p[1] = ':'; p[2] = ' '; p+=3; }
+//			switch(logtype) {
+//			case LOG_s: {
+//				const char *text = va_arg(ap, const char*);
+//				p = write_text_toebuf(text, p, ebuf);
+//				break;
+//			}
+//			case LOG_u: {
+//				p = write_uint_toebuf(va_arg(ap, uintptr_t), p, ebuf);
+//				break;
+//			}
+//		case LOG_f: {
+//				p = write_float_toebuf(va_arg(ap, double), p, ebuf);
+//				break;
+//			}
+//			default:
+//				if(p + 4 < ebuf) { p[0] = 'n'; p[1] = 'u'; p[2] = 'l'; p[3] = 'l'; p+=4; }
+//			}
+//			c++;
+//		}
+//	}
+//	p[0] = '}'; p++;
+//	p[0] = '\n'; p++;
+//	p[0] = '\0';
+//	syslog(LOG_NOTICE, "%s", buf);
+//	return 0;// FIXME reference to log
+//}
+//
+//static uintptr_t logger(void *arg, ...)
+//{
+//	va_list ap;
+//	va_start(ap, arg);
+//	uintptr_t ref = logger_p(arg, ap);
+//	va_end(ap);
+//	return ref;
+//}
 
-#define LOG_END 0
-#define LOG_s   1
-#define LOG_u   2
-#define LOG_f   3
-
-static uintptr_t logger_p(void *arg, va_list ap)
-{
-	char buf[EBUFSIZ], *p = buf, *ebuf =  p + (EBUFSIZ - 4);
-	p[0] = '{'; p++;
-	{
-		int c = 0, logtype;
-		while((logtype = va_arg(ap, int)) != LOG_END) {
-			const char *key = va_arg(ap, const char*);
-			if(c > 0 && p + 3 < ebuf) { p[0] = ','; p[1] = ' '; p+=2; }
-			if(p < ebuf) { p[0] = '"'; p++; }
-			p = write_byte_toebuf(key, strlen(key), p, ebuf);
-			if(p + 3 < ebuf) { p[0] = '"'; p[1] = ':'; p[2] = ' '; p+=3; }
-			switch(logtype) {
-			case LOG_s: {
-				const char *text = va_arg(ap, const char*);
-				p = write_text_toebuf(text, p, ebuf);
-				break;
-			}
-			case LOG_u: {
-				p = write_uint_toebuf(va_arg(ap, uintptr_t), p, ebuf);
-				break;
-			}
-		case LOG_f: {
-				p = write_float_toebuf(va_arg(ap, double), p, ebuf);
-				break;
-			}
-			default:
-				if(p + 4 < ebuf) { p[0] = 'n'; p[1] = 'u'; p[2] = 'l'; p[3] = 'l'; p+=4; }
-			}
-			c++;
-		}
-	}
-	p[0] = '}'; p++;
-	p[0] = '\n'; p++;
-	p[0] = '\0';
-	syslog(LOG_NOTICE, "%s", buf);
-	return 0;// FIXME reference to log
-}
-
-static uintptr_t logger(void *arg, ...)
-{
-	va_list ap;
-	va_start(ap, arg);
-	uintptr_t ref = logger_p(arg, ap);
-	va_end(ap);
-	return ref;
-}
-
-#define trace(arg, ...) do {\
-	logger(arg, __VA_ARGS__, LOG_END);\
-} while(0)
+//#define trace(arg, ...) do {\
+//	logger(arg, __VA_ARGS__, LOG_END);\
+//} while(0)
+#define trace(arg, ...)
 
 // -------------------------------------------------------------------------
 // ** libproc **
