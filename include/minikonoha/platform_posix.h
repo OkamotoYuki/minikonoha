@@ -514,6 +514,10 @@ static void traceDataLog(void *logger, int logkey, logconf_t *logconf, ...)
 	va_end(ap);
 }
 
+static void monitorResource(pid_t pid)
+{
+}
+
 static PlatformApi* KonohaUtils_getDefaultPlatformApi(void)
 {
 	static PlatformApiVar plat = {};
@@ -566,6 +570,7 @@ static PlatformApi* KonohaUtils_getDefaultPlatformApi(void)
 	plat.vsyslog_i           = vsyslog;
 	plat.logger              = NULL;
 	plat.traceDataLog        = traceDataLog;
+	plat.monitorResource     = monitorResource;
 	return (PlatformApi*)(&plat);
 }
 
