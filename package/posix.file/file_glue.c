@@ -85,7 +85,7 @@ static KMETHOD System_fopen(KonohaContext *kctx, KonohaStack *sfp)
 	DBG_P("fp=%p, filepath=%s", fp, S_text(s));
 	if (fp == NULL) {
 		// TODO: throw
-		KTrace(SystemFault|ScriptFault, 0,
+		KTraceApi(SystemFault|ScriptFault, "System.fopen",
 				LogText("@", "fopen"),
 				LogText("path", S_text(s)),
 				LogUint("mode", mode),
@@ -117,7 +117,7 @@ static KMETHOD File_read(KonohaContext *kctx, KonohaStack *sfp)
 		size = fread(ba->buf + offset, 1, len, fp);
 		if (size == 0 && ferror(fp) != 0){
 			// TODO: throw
-			KTrace(SystemFault, 0,
+			KTraceApi(SystemFault, "File.read",
 					LogText("@", "fread"),
 					LogText("errstr", strerror(errno))
 			);
@@ -142,7 +142,7 @@ static KMETHOD File_write(KonohaContext *kctx , KonohaStack *sfp)
 		size = fwrite(ba->buf + offset, 1, len, fp);
 		if (size < len) {
 			// TODO: throw
-			KTrace(SystemFault, 0,
+			KTraceApi(SystemFault, "File.write",
 					LogText("@", "fwrite"),
 					LogText("errstr", strerror(errno))
 			);
@@ -160,7 +160,7 @@ static KMETHOD File_close(KonohaContext *kctx, KonohaStack *sfp)
 		int ret = fclose(fp);
 		if (ret != 0) {
 			// TODO: throw
-			KTrace(SystemFault, 0,
+			KTraceApi(SystemFault, "File.close",
 					LogText("@", "fclose"),
 					LogText("errstr", strerror(errno))
 			);
@@ -179,7 +179,7 @@ static KMETHOD File_getC(KonohaContext *kctx, KonohaStack *sfp)
 		ch = fgetc(fp);
 		if (ch == EOF && ferror(fp) != 0) {
 			// TODO: throw
-			KTrace(DataFault, 0,
+			KTraceApi(DataFault, "File.getC",
 					LogText("@", "fgetc"),
 					LogText("errstr", strerror(errno))
 			);
@@ -196,7 +196,7 @@ static KMETHOD File_putC(KonohaContext *kctx, KonohaStack *sfp)
 		int ch = fputc(sfp[1].intValue, fp);
 		if (ch == EOF) {
 			// TODO: throw
-			KTrace(DataFault, 0,
+			KTraceApi(DataFault, "File.putC",
 					LogText("@", "fputc"),
 					LogText("errstr", strerror(errno))
 			);
