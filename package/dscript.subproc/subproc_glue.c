@@ -261,7 +261,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 					LogUint("errno", errno),
 					LogText("errstr", strerror(errno))
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 			close(c2p[0]); close(c2p[1]);
 			return -1;
 		}
@@ -274,7 +274,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 					LogUint("errno", errno),
 					LogText("errstr", strerror(errno))
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 			close(c2p[0]); close(c2p[1]);
 			close(p2c[0]); close(p2c[1]);
 			return -1;
@@ -308,7 +308,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			close(p2c[0]); close(p2c[1]);
 		}
@@ -320,7 +320,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 		}
 		if(rmode == M_PIPE) {
@@ -331,7 +331,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			close(c2p[0]); close(c2p[1]);
 		}
@@ -343,7 +343,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 		}
 		if(emode == M_PIPE) {
@@ -376,7 +376,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 				_exit(1);
 			}
 		}
@@ -388,7 +388,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 						LogText("@", "spSplit"),
 						LogText("command", S_text(command))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 				args[0] = NULL;
 			}
 		}
@@ -412,7 +412,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 							LogUint("errno", errno),
 							LogText("errstr", strerror(errno))
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 					for(i = 0; i < num; i++) {
 						KTrace(SystemFault | ScriptFault, 0,
 								LogText("@", "execve"),
@@ -437,7 +437,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 							LogUint("errno", errno),
 							LogText("errstr", strerror(errno))
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 					for(i = 0; i < num; i++) {
 						KTrace(SystemFault | ScriptFault, 0,
 								LogText("@", "execle"),
@@ -455,7 +455,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 							LogUint("errno", errno),
 							LogText("errstr", strerror(errno))
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 					int i;
 					for(i = 0; args[i] != NULL; i++) {
 						KTrace(SystemFault | ScriptFault, 0,
@@ -474,7 +474,7 @@ static int knh_popen(KonohaContext *kctx, kString* command, subprocData_t *spd, 
 							LogUint("errno", errno),
 							LogText("errstr", strerror(errno))
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 				}
 			}
 		}
@@ -536,7 +536,7 @@ static int knh_wait(KonohaContext *kctx, int pid, int bg, int timeout, int *stat
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			return S_TIMEOUT;
 		}
@@ -587,7 +587,7 @@ static int knh_wait(KonohaContext *kctx, int pid, int bg, int timeout, int *stat
 					LogUint("errno", errno),
 					LogText("errstr", strerror(errno))
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 		}
 	}
 	if(status != NULL) {
@@ -715,7 +715,7 @@ static KMETHOD Subproc_bg(KonohaContext *kctx, KonohaStack *sfp)
 				LogText("command", S_text(p->command)),
 				LogUint("status", p->status)
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 //		KNH_NTRACE2(kctx, "package.subproc.bg ", K_PERROR, KNH_LDATA0);
 		}
 	}
@@ -742,7 +742,7 @@ static KMETHOD Subproc_fg(KonohaContext *kctx, KonohaStack *sfp)
 				LogText("command", S_text(p->command)),
 				LogUint("status", p->status)
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 		}
 	}
 	RETURNi_( ret );
@@ -772,7 +772,7 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			if(status != 0) {
 				KTrace(SystemFault | ScriptFault, 0,
@@ -780,7 +780,7 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("command", S_text(p->command)),
 					LogUint("status", status)
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			else if ( (p->r.mode == M_PIPE) || (p->r.mode == M_DEFAULT) ) {
 				char buf[K_PAGESIZE] = {0};
@@ -794,7 +794,7 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 								LogUint("errno", errno),
 								LogText("errstr", strerror(errno))
 						);
-						PLATAPI monitorResource(getpid());
+						PLATAPI monitorResource();
 					}
 					else {
 						// reached eof?
@@ -816,7 +816,7 @@ static KMETHOD Subproc_exec(KonohaContext *kctx, KonohaStack *sfp)
 					LogUint("errno", errno),
 					LogText("errstr", strerror(errno))
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 		}
 		struct itimerval val;
 		getitimer(ITIMER_REAL, &val);
@@ -868,7 +868,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 						LogUint("errno", errno),
 						LogText("errstr", strerror(errno))
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 //				KNH_NTRACE2(ctx, "package.subproc.communicate ", K_PERROR, KNH_LDATA0);
 			}
 			if(oldset != SIG_ERR) {
@@ -883,7 +883,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 					LogUint("errno", errno),
 					LogText("errstr", strerror(errno))
 			);
-			PLATAPI monitorResource(getpid());
+			PLATAPI monitorResource();
 		} else {
 			if(p->status != 0) {
 				KTrace(SystemFault | ScriptFault, 0,
@@ -892,7 +892,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("input", S_text(sfp[1].asString)),
 					LogUint("status", p->status)
 				);
-				PLATAPI monitorResource(getpid());
+				PLATAPI monitorResource();
 			}
 			ret_a = (kArray*)KLIB new_kObject(kctx, CT_Array, 0);
 			if(p->r.mode == M_PIPE) {
@@ -900,7 +900,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 					KTraceApi(SystemFault, "Subproc.communicate",
 							LogText("@", "fread")
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 				}
 			}
 			else {
@@ -911,7 +911,7 @@ static KMETHOD Subproc_communicate(KonohaContext *kctx, KonohaStack *sfp)
 					KTraceApi(SystemFault, "Subproc.communicate",
 							LogText("@", "fread")
 					);
-					PLATAPI monitorResource(getpid());
+					PLATAPI monitorResource();
 				}
 			}
 			else {
