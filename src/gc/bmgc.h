@@ -39,9 +39,9 @@
 extern "C" {
 #endif
 
-#if defined(GCDEBUG) && !defined(GCSTAT)
+//#if defined(GCDEBUG) && !defined(GCSTAT)
 #define GCSTAT 1
-#endif
+//#endif
 
 //#define MEMORY_DEBUG 1
 
@@ -624,12 +624,14 @@ static const unsigned BM_SIZE[] = {
 #if GCDEBUG
 #define gc_info(fmt, ...)  fprintf(stderr, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
 #define gc_debug(fmt, ...) fprintf(stderr, "(%s:%d) " fmt "\n" , __func__, __LINE__, ## __VA_ARGS__)
-#define gc_stat(fmt, ...)  gc_debug(fmt, ##__VA_ARGS__);\
-	fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#define gc_stat(fmt, ...)
+//#define gc_stat(fmt, ...)  gc_debug(fmt, ##__VA_ARGS__);\
+//	fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
 #else
 #define gc_info(fmt, ...)
 #define gc_debug(fmt, ...)
-#define gc_stat(fmt, ...)  fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#define gc_stat(fmt, ...)
+//#define gc_stat(fmt, ...)  fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
 #endif
 
 #define Object_setTenure(o) TFLAG_set(uintptr_t,(o)->h.magicflag,kObject_GCFlag,1)
@@ -1887,12 +1889,12 @@ static void bitmapMarkingGC(KonohaContext *kctx, HeapManager *mng, enum gc_mode 
 {
 	DBG_P("GC starting");
 	bmgc_gc_init(kctx, mng, mode);
-//#ifdef GCSTAT
+#ifdef GCSTAT
 	size_t i = 0, marked = 0, collected = 0, heap_size = 0;
 	FOR_EACH_ARRAY_(mng->heap_size_a, i) {
 		heap_size += ARRAY_n(mng->heap_size_a, i);
 	}
-//#endif
+#endif
 	bmgc_gc_mark(kctx, mng, kctx->esp, mode);
 
 	bmgc_gc_sweep(kctx, HeapManager(kctx));
@@ -1909,7 +1911,6 @@ static void bitmapMarkingGC(KonohaContext *kctx, HeapManager *mng, enum gc_mode 
 	gc_stat("%sGC(%" PREFIX_d ") HeapSize=%" PREFIX_d" MB, last_collected=%" PREFIX_d", marked=%"PREFIX_d,
 			(mode & GC_MAJOR)?"major":"minor",
 			global_gc_stat.gc_count, (heap_size/MB_), collected, marked);
-#endif
 	KTrace(ActionPoint, 0,
 			LogText("@", "bitmapMarkingGC"),
 			LogUint("time", PLATAPI getTimeMilliSecond()),
@@ -1918,6 +1919,7 @@ static void bitmapMarkingGC(KonohaContext *kctx, HeapManager *mng, enum gc_mode 
 			LogUint("last_collected", collected),
 			LogUint("marked", marked)
 		  );
+#endif
 	bitmap_reset(&((KonohaContextVar*)kctx)->safepoint, 0);
 }
 
