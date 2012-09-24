@@ -649,10 +649,7 @@ static unsigned long long getTime(void)
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
-#define KeyValue_u(K,V)    LOG_u, (K), ((uintptr_t)V)
-#define KeyValue_s(K,V)    LOG_s, (K), (V)
-#define KeyValue_p(K,V)    LOG_u, (K), (V)
-#define KeyValue_f(K,V)    LOG_f, (K), ((float)V)
+#define LogFloat(K,V)    LOG_f, (K), ((float)V)
 
 static unsigned Page_size;
 static unsigned page_to_kb_shift;
@@ -761,26 +758,26 @@ static void _monitorResource(pid_t pid) {
 
 	static void *arg;
 	trace(&arg,
-			KeyValue_u("time",          getTime()),
-			KeyValue_u("procs_running", running),
-			KeyValue_u("procs_blocked", blocked),
-			KeyValue_u("memory_swpd",   memory_swpd),
-			KeyValue_u("memory_free",   memory_free),
-			KeyValue_u("memory_buff",   memory_buff),
-			KeyValue_u("memory_cache",  memory_cache),
-			KeyValue_u("swap_si",       swap_si),
-			KeyValue_u("swap_so",       swap_so),
-			KeyValue_u("io_bi",         io_bi),
-			KeyValue_u("io_bo",         io_bo),
-			KeyValue_u("system_in",     system_in),
-			KeyValue_u("system_cs",     system_cs),
-			KeyValue_u("cpu_us",        cpu_us),
-			KeyValue_u("cpu_sy",        cpu_sy),
-			KeyValue_u("cpu_id",        cpu_id),
-			KeyValue_u("cpu_wa",        cpu_wa),
-			KeyValue_f("cpu_usage(%)",  percent_cpu_usage),
-			KeyValue_f("mem_usage(%)",  percent_mem_usage),
-			KeyValue_u("mem_usage(kb)", kb_mem_usage)
+			LogUint("time",          getTime()),
+			LogUint("procs_running", running),
+			LogUint("procs_blocked", blocked),
+			LogUint("memory_swpd",   memory_swpd),
+			LogUint("memory_free",   memory_free),
+			LogUint("memory_buff",   memory_buff),
+			LogUint("memory_cache",  memory_cache),
+			LogUint("swap_si",       swap_si),
+			LogUint("swap_so",       swap_so),
+			LogUint("io_bi",         io_bi),
+			LogUint("io_bo",         io_bo),
+			LogUint("system_in",     system_in),
+			LogUint("system_cs",     system_cs),
+			LogUint("cpu_us",        cpu_us),
+			LogUint("cpu_sy",        cpu_sy),
+			LogUint("cpu_id",        cpu_id),
+			LogUint("cpu_wa",        cpu_wa),
+			LogFloat("cpu_usage(%)", percent_cpu_usage),
+			LogFloat("mem_usage(%)", percent_mem_usage),
+			LogUint("mem_usage(kb)", kb_mem_usage)
 		);
 	return;
 }
@@ -899,11 +896,11 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	void *arg;
 	char *scriptname = (argv[scriptidx]) ? argv[scriptidx] : "";
 	trace(&arg,
-			KeyValue_s("@", "start"),
-			KeyValue_s("scriptname", scriptname),
-			KeyValue_u("pid", thispid),
-			KeyValue_u("ppid", getppid()),
-			KeyValue_u("uid", getuid())
+			LogText("@", "start"),
+			LogText("scriptname", scriptname),
+			LogUint("pid", thispid),
+			LogUint("ppid", getppid()),
+			LogUint("uid", getuid())
 		 );
 	_monitorResource(thispid);
 	pthread_t logging_thread;
