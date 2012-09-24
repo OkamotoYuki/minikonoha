@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <errno.h>
 #include <grp.h>
 #ifdef __linux__
 #include <sys/wait.h>
@@ -72,6 +73,12 @@ static KMETHOD System_getpgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getpgid(pid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.getpgid",
+				LogText("@", "getpgid"),
+				LogUint("pid", pid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -83,6 +90,13 @@ static KMETHOD System_setpgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setpgid(pid, pgid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setpgid",
+				LogText("@", "setpgid"),
+				LogUint("pid", pid),
+				LogUint("pid", pgid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -94,8 +108,29 @@ static KMETHOD System_chdir(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = chdir(dir);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.chdir",
+				LogText("@", "chdir"),
+				LogText("dir", dir),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
+}
+
+static KMETHOD System_fchdir(KonohaContext *kctx, KonohaStack *sfp)
+{
+	int ch = fchdir(sfp[1].intValue);
+	if(ch == -1) {
+		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.fchdir",
+				LogText("@", "fchdir"),
+				LogText("fd", sfp[1].intValue),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
+	}
+	RETURNi_(ch);
 }
 
 static KMETHOD System_chroot(KonohaContext *kctx, KonohaStack *sfp)
@@ -105,6 +140,12 @@ static KMETHOD System_chroot(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = chroot(root);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.chroot",
+				LogText("@", "chroot"),
+				LogText("root", root),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -117,6 +158,13 @@ static KMETHOD System_getpriority(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getpriority(which, who);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.getpriority",
+				LogText("@", "getpriority"),
+				LogUint("which", which),
+				LogUint("who", who),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -129,6 +177,14 @@ static KMETHOD System_setpriority(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setpriority(which, who, priority);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setpriority",
+				LogText("@", "setpriority"),
+				LogUint("which", which),
+				LogUint("who", who),
+				LogUint("priority", priority),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -140,6 +196,13 @@ static KMETHOD System_getgroups(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = getgroups(size, (gid_t *)(list->kintItems));
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.getgroups",
+				LogText("@", "getgroups"),
+				LogUint("size", size),
+//				KeyValue_p("list", list->kintItems),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -151,6 +214,13 @@ static KMETHOD System_setgroups(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setgroups(size, (const gid_t *)(list->kintItems));
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setgroups",
+				LogText("@", "setgroups"),
+				LogUint("size", size),
+//				KeyValue_p("list", list->kintItems),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -161,6 +231,11 @@ static KMETHOD System_fork(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = fork();
 	if(pid == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault, "System.fork",
+				LogText("@", "fork"),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -172,6 +247,11 @@ static KMETHOD System_wait(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = wait(&status);
 	if(pid == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault, "System.wait",
+				LogText("@", "wait"),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -185,6 +265,13 @@ static KMETHOD System_waitpid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t pid = waitpid(target_pid, &status, options);
 	if(pid == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.waitpid",
+				LogText("@", "waitpid"),
+				LogUint("pid", target_pid),
+//				KeyValue_p("options", options),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(pid);
 }
@@ -196,6 +283,12 @@ static KMETHOD System_setuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setuid(uid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setuid",
+				LogText("@", "setuid"),
+				LogUint("uid", uid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -207,6 +300,12 @@ static KMETHOD System_seteuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = seteuid(euid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setuid",
+				LogText("@", "seteuid"),
+				LogUint("euid", euid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -219,6 +318,13 @@ static KMETHOD System_setreuid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setreuid(ruid, euid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setreuid",
+				LogText("@", "setreuid"),
+				LogUint("ruid", ruid),
+//				KeyValue_p("euid", euid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -230,6 +336,12 @@ static KMETHOD System_setgid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setgid(gid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setgid",
+				LogText("@", "setgid"),
+				LogUint("gid", gid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -241,6 +353,12 @@ static KMETHOD System_setegid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setegid(egid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setegid",
+				LogText("@", "setegid"),
+				LogUint("egid", egid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -253,6 +371,13 @@ static KMETHOD System_setregid(KonohaContext *kctx, KonohaStack *sfp)
 	int ret = setregid(rgid, egid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.setregid",
+				LogText("@", "setregid"),
+				LogUint("rgid", rgid),
+				LogUint("egid", egid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -263,6 +388,11 @@ static KMETHOD System_setsid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t ret = setsid();
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault, "System.setsid",
+				LogText("@", "setsid"),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -274,6 +404,12 @@ static KMETHOD System_getsid(KonohaContext *kctx, KonohaStack *sfp)
 	pid_t ret = getsid(pid);
 	if(ret == -1) {
 		// TODO: throw
+		KTraceApi(SystemFault|ScriptFault, "System.getsid",
+				LogText("@", "getsid"),
+				LogUint("pid", pid),
+				LogText("errstr", strerror(errno))
+		);
+//		PLATAPI monitorResource(BIGDATA);
 	}
 	RETURNi_(ret);
 }
@@ -305,6 +441,7 @@ static kbool_t process_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc
 		_Public|_Static, _F(System_getpgid), TY_int, TY_System, MN_("getpgid"), 1, TY_int, FN_("pid"),
 		_Public|_Static, _F(System_setpgid), TY_int, TY_System, MN_("setpgid"), 2, TY_int, FN_("pid"), TY_int, FN_("pgid"),
 		_Public|_Static, _F(System_chdir), TY_int, TY_System, MN_("chdir"), 1, TY_String, FN_("pathname"),
+		_Public|_Static, _F(System_fchdir), TY_int, TY_System, MN_("fchdir"), 1, TY_int, FN_("fd"),
 		_Public|_Static, _F(System_chroot), TY_int, TY_System, MN_("chroot"), 1, TY_String, FN_("pathname"),
 		_Public|_Static, _F(System_getpriority), TY_int, TY_System, MN_("getpriority"), 2, TY_int, FN_("which"), TY_int, FN_("who"),
 		_Public|_Static, _F(System_setpriority), TY_int, TY_System, MN_("setpriority"), 3, TY_int, FN_("which"), TY_int, FN_("who"), TY_int, FN_("priority"),

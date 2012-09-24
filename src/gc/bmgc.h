@@ -625,13 +625,17 @@ static const unsigned BM_SIZE[] = {
 #define gc_info(fmt, ...)  fprintf(stderr, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
 #define gc_debug(fmt, ...) fprintf(stderr, "(%s:%d) " fmt "\n" , __func__, __LINE__, ## __VA_ARGS__)
 #define gc_stat(fmt, ...)
-//#define gc_stat(fmt, ...)  gc_debug(fmt, ##__VA_ARGS__);\
-//	fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#if 0
+#define gc_stat(fmt, ...)  gc_debug(fmt, ##__VA_ARGS__);\
+	fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#endif
 #else
 #define gc_info(fmt, ...)
 #define gc_debug(fmt, ...)
 #define gc_stat(fmt, ...)
-//#define gc_stat(fmt, ...)  fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#if 0
+#define gc_stat(fmt, ...)  fprintf(global_gc_stat.fp, "(%s:%d) " fmt "\n" , __func__, __LINE__,  ## __VA_ARGS__)
+#endif
 #endif
 
 #define Object_setTenure(o) TFLAG_set(uintptr_t,(o)->h.magicflag,kObject_GCFlag,1)
