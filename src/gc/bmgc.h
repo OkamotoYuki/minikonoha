@@ -1909,7 +1909,7 @@ static void bitmapMarkingGC(KonohaContext *kctx, HeapManager *mng, enum gc_mode 
 	gc_stat("%sGC(%" PREFIX_d ") HeapSize=%" PREFIX_d" MB, last_collected=%" PREFIX_d", marked=%"PREFIX_d,
 			(mode & GC_MAJOR)?"major":"minor",
 			global_gc_stat.gc_count, (heap_size/MB_), collected, marked);
-	KTrace(ActionPoint,
+	KTrace(ActionPoint, 0,
 			LogText("@", "bitmapMarkingGC"),
 			LogUint("time", PLATAPI getTimeMilliSecond()),
 			LogUint((mode & GC_MAJOR)?"major":"minor" "GC", global_gc_stat.gc_count),
