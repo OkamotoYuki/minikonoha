@@ -159,6 +159,7 @@ static KMETHOD System_lseek(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("whence", whence),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_((int)ret_offset);
 }
@@ -183,6 +184,7 @@ static KMETHOD System_ftruncate(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("length", length),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNb_(ret == 0);
 }
@@ -200,6 +202,7 @@ static KMETHOD System_fchmod(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("mode", mode),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNb_(ret == 0);
 }
@@ -237,6 +240,7 @@ static KMETHOD System_flock(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("operation", operation),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNb_(ret == 0);
 }
@@ -252,6 +256,7 @@ static KMETHOD System_sync(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("@", "fsync"),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNb_(ret == 0);
 }
@@ -271,6 +276,7 @@ static KMETHOD System_link(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("newpath", newpath),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -287,6 +293,7 @@ static KMETHOD System_unlink(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("pathname", pathname),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -306,6 +313,7 @@ static KMETHOD System_rename(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("newpath", newpath),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -322,6 +330,7 @@ static KMETHOD System_rmdir(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("pathname", pathname),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -341,6 +350,7 @@ static KMETHOD System_symlink(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("newpath", newpath),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -358,6 +368,7 @@ static KMETHOD System_readlink(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("pathname", pathname),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 		pathbuf[0] = '\0';
 	}
 	else {
@@ -382,6 +393,7 @@ static KMETHOD System_chown(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("group", group),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -402,6 +414,7 @@ static KMETHOD System_lchown(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("group", group),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -420,6 +433,7 @@ static KMETHOD System_fchown(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("group", group),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -438,6 +452,7 @@ static KMETHOD System_access(KonohaContext *kctx, KonohaStack *sfp)
 			   LogUint("mode", mode),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }
@@ -452,6 +467,7 @@ static KMETHOD System_fsync(KonohaContext *kctx, KonohaStack *sfp)
 			   LogText("@", "fsync"),
 			   LogText("errstr", strerror(errno))
 			);
+		PLATAPI monitorResource();
 	}
 	RETURNi_(ret);
 }

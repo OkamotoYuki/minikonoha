@@ -514,7 +514,7 @@ static void traceDataLog(void *logger, int logkey, logconf_t *logconf, ...)
 	va_end(ap);
 }
 
-static void monitorResource(pid_t pid)
+static void monitorResource(void)
 {
 }
 

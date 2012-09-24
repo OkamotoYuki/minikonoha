@@ -59,6 +59,7 @@ static void File_free(KonohaContext *kctx, kObject *o)
 					LogText("@", "fclose"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 		}
 		file->fp = NULL;
 	}
@@ -91,6 +92,7 @@ static KMETHOD System_fopen(KonohaContext *kctx, KonohaStack *sfp)
 				LogUint("mode", mode),
 				LogText("errstr", strerror(errno))
 		);
+		PLATAPI monitorResource();
 	}
 	struct _kFILE *file = (struct _kFILE*)KLIB new_kObject(kctx, O_ct(sfp[K_RTNIDX].asObject), (uintptr_t)fp);
 	file->realpath = realpath(S_text(s), NULL);
@@ -121,6 +123,7 @@ static KMETHOD File_read(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("@", "fread"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 			clearerr(fp);
 		}
 	}
@@ -146,6 +149,7 @@ static KMETHOD File_write(KonohaContext *kctx , KonohaStack *sfp)
 					LogText("@", "fwrite"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 		}
 	}
 	RETURNi_(size);
@@ -164,6 +168,7 @@ static KMETHOD File_close(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("@", "fclose"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 		}
 		file->fp = NULL;
 	}
@@ -183,6 +188,7 @@ static KMETHOD File_getC(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("@", "fgetc"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 		}
 	}
 	RETURNi_(ch);
@@ -200,6 +206,7 @@ static KMETHOD File_putC(KonohaContext *kctx, KonohaStack *sfp)
 					LogText("@", "fputc"),
 					LogText("errstr", strerror(errno))
 			);
+			PLATAPI monitorResource();
 		}
 		RETURNb_(ch != EOF);
 	}

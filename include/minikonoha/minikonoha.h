@@ -256,7 +256,7 @@ struct PlatformApiVar {
 	void  (*vsyslog_i)(int priority, const char *message, va_list args);
 	void   *logger;  // logger handler
 	void  (*traceDataLog)(void *, int, logconf_t *, ...);
-	void  (*monitorResource)(pid_t pid);
+	void  (*monitorResource)(void);
 };
 
 #define LOG_END   0

@@ -726,7 +726,8 @@ static unsigned page_to_kb_shift;
 
 #define PAGES_TO_KB(n)  (unsigned long)( (n) << page_to_kb_shift )
 
-static void _monitorResource(pid_t pid) {
+static void _monitorResource(void) {
+	static pid_t                pid;
 	static struct        libproc *LIBPROC;
 	unsigned int         hz;
 	unsigned int         running,blocked,dummy_1,dummy_2;
@@ -747,6 +748,7 @@ static void _monitorResource(pid_t pid) {
 	unsigned             kb_mem_usage;
 
 	if(isFirst) {
+		pid = getpid();
 		LIBPROC = getLibproc();
 		hz = *(LIBPROC->Hertz);
 		LIBPROC->getstat(cpu_use,cpu_nic,cpu_sys,cpu_idl,cpu_iow,cpu_xxx,cpu_yyy,cpu_zzz,
@@ -862,12 +864,10 @@ static void _monitorResource(pid_t pid) {
 	return;
 }
 
-static pid_t thispid = 0;
-
 static void *monitor_func(void *arg)
 {
 	while(true) {
-		_monitorResource(thispid);
+		_monitorResource();
 		sleep(1);
 	}
 	return NULL;
@@ -965,7 +965,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	scriptidx = optind;
 	CommandLine_setARGV(konoha, argc - scriptidx, argv + scriptidx);
 
-	thispid = getpid();
+	pid_t thispid = getpid();
 	Page_size = getpagesize(); // for mem usage
 	int i = Page_size;
 	while(i > 1024) {
@@ -982,7 +982,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 			LogUint("ppid", getppid()),
 			LogUint("uid", getuid())
 		 );
-	_monitorResource(thispid);
+	_monitorResource();
 	pthread_t logging_thread;
 	pthread_create(&logging_thread, NULL, monitor_func, (void *)konoha);
 
