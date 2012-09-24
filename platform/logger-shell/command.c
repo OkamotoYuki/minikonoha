@@ -593,6 +593,76 @@ static struct libproc *getLibproc(void) {
 	return &LIBPROC;
 }
 
+// -------------------------------------------------------------------------
+// ** io **
+
+typedef struct io_t {
+	unsigned long rchar;
+	unsigned long wchar;
+	unsigned long syscr;
+	unsigned long syscw;
+	unsigned long read_bytes;
+	unsigned long write_bytes;
+	unsigned long cancelled_write_bytes;
+} io_t;
+
+#include <fcntl.h>
+
+static int file2str(const char *directory, const char *what, char *ret, int cap) {
+    static char filename[80];
+    int fd, num_read;
+
+    sprintf(filename, "%s/%s", directory, what);
+    fd = open(filename, O_RDONLY, 0);
+    if(unlikely(fd==-1)) return -1;
+    num_read = read(fd, ret, cap - 1);
+    close(fd);
+    if(unlikely(num_read<=0)) return -1;
+    ret[num_read] = '\0';
+    return num_read;
+}
+
+static void str2io(const char *S, io_t *io)
+{
+	unsigned num;
+
+	num = sscanf(S,
+			"rchar: %lu\n"
+			"wchar: %lu\n"
+			"syscr: %lu\n"
+			"syscw: %lu\n"
+			"read_bytes: %lu\n"
+			"write_bytes: %lu\n"
+			"cancelled_write_bytes: %lu\n",
+			&io->rchar,
+			&io->wchar,
+			&io->syscr,
+			&io->syscw,
+			&io->read_bytes,
+			&io->write_bytes,
+			&io->cancelled_write_bytes
+			);
+	if(num < 7) exit(1);
+
+	return;
+}
+
+static io_t *get_io_stats(pid_t pid, io_t *io)
+{
+	static char path[PATH_MAX], sbuf[1024];
+	struct stat statbuf;
+
+	sprintf(path, "/proc/%d", pid);
+	if (stat(path, &statbuf)) {
+		perror("stat");
+		return NULL;
+	}
+
+	if (file2str(path, "io", sbuf, sizeof sbuf) >= 0)
+		str2io(sbuf, io);	/* parse /proc/#/io */
+
+	return io;
+}
 
 // -------------------------------------------------------------------------
 // ** resource monitor **
@@ -756,28 +826,38 @@ static void _monitorResource(pid_t pid) {
 	percent_mem_usage = (float)((float)PAGES_TO_KB(p->resident) * 100 / *(LIBPROC->kb_main_total));
 	kb_mem_usage      = (unsigned)PAGES_TO_KB(p->resident);
 
+	io_t *io = (io_t *)alloca(sizeof(io_t));
+	io = get_io_stats(pid, io);
+
 	static void *arg;
 	trace(&arg,
-			LogUint("time",          getTime()),
-			LogUint("procs_running", running),
-			LogUint("procs_blocked", blocked),
-			LogUint("memory_swpd",   memory_swpd),
-			LogUint("memory_free",   memory_free),
-			LogUint("memory_buff",   memory_buff),
-			LogUint("memory_cache",  memory_cache),
-			LogUint("swap_si",       swap_si),
-			LogUint("swap_so",       swap_so),
-			LogUint("io_bi",         io_bi),
-			LogUint("io_bo",         io_bo),
-			LogUint("system_in",     system_in),
-			LogUint("system_cs",     system_cs),
-			LogUint("cpu_us",        cpu_us),
-			LogUint("cpu_sy",        cpu_sy),
-			LogUint("cpu_id",        cpu_id),
-			LogUint("cpu_wa",        cpu_wa),
-			LogFloat("cpu_usage(%)", percent_cpu_usage),
-			LogFloat("mem_usage(%)", percent_mem_usage),
-			LogUint("mem_usage(kb)", kb_mem_usage)
+			LogUint("time",                     getTime()),
+			LogUint("procs_running",            running),
+			LogUint("procs_blocked",            blocked),
+			LogUint("memory_swpd",              memory_swpd),
+			LogUint("memory_free",              memory_free),
+			LogUint("memory_buff",              memory_buff),
+			LogUint("memory_cache",             memory_cache),
+			LogUint("swap_si",                  swap_si),
+			LogUint("swap_so",                  swap_so),
+			LogUint("io_bi",                    io_bi),
+			LogUint("io_bo",                    io_bo),
+			LogUint("system_in",                system_in),
+			LogUint("system_cs",                system_cs),
+			LogUint("cpu_us",                   cpu_us),
+			LogUint("cpu_sy",                   cpu_sy),
+			LogUint("cpu_id",                   cpu_id),
+			LogUint("cpu_wa",                   cpu_wa),
+			LogFloat("cpu_usage(%)",            percent_cpu_usage),
+			LogFloat("mem_usage(%)",            percent_mem_usage),
+			LogUint("mem_usage(kb)",            kb_mem_usage),
+			LogUint("rchar(b)",                 io->rchar),
+			LogUint("wchar(b)",                 io->wchar),
+			LogUint("syscr(b)",                 io->syscr),
+			LogUint("syscw(b)",                 io->syscw),
+			LogUint("read_bytes(b)",            io->read_bytes),
+			LogUint("write_bytes(b)",           io->write_bytes),
+			LogUint("cancelled_write_bytes(b)", io->cancelled_write_bytes)
 		);
 	return;
 }
