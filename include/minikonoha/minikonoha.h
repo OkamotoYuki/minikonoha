@@ -29,6 +29,10 @@
 #include "config.h"
 #endif
 
+#ifndef HAVE_BZERO
+#define bzero(s, n) memset(s, 0, n)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -108,7 +112,13 @@ typedef KonohaPackageHandler* (*PackageLoadFunc)(void);
 #ifndef jmpbuf_i
 #include <setjmp.h>
 #define jmpbuf_i jmp_buf
-#if __MINGW32__ || __MSVC__
+#if defined(__MINGW64__)
+static inline int setjmp_mingw(_JBTYPE* t)
+{
+	return _setjmp(t, NULL);
+}
+#define ksetjmp  setjmp_mingw
+#elif defined(__MINGW32__)
 #define ksetjmp  _setjmp
 #else
 #define ksetjmp  setjmp
