@@ -139,7 +139,7 @@ set(PACKAGES
 	dscript.subproc
 	curl
 ##	ijit
-##	jansson
+	jansson
 	mecab
 	python
 	apache

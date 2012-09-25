@@ -895,6 +895,22 @@ static struct option long_options2[] = {
 
 static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc, char **argv)
 {
+	char lineOfArgs[128];
+	char *p = lineOfArgs;
+	*p = '\0';
+	int i = 0;
+	size_t len;
+	while(i < argc) {
+		len = strlen(argv[i]);
+		memcpy(p, argv[i], len);
+		i++;
+		p += len;
+		if(i >= argc) break;
+		p[0] = ' ';
+		p++;
+	}
+	p[0] = '\0';
+
 	kbool_t ret = true;
 	int scriptidx = 0;
 	while (1) {
@@ -967,7 +983,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 
 	pid_t thispid = getpid();
 	Page_size = getpagesize(); // for mem usage
-	int i = Page_size;
+	i = Page_size;
 	while(i > 1024) {
 		i >>= 1;
 		page_to_kb_shift++;
@@ -978,6 +994,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	trace(&arg,
 			LogText("@", "start"),
 			LogText("scriptname", scriptname),
+			LogText("command", lineOfArgs),
 			LogUint("pid", thispid),
 			LogUint("ppid", getppid()),
 			LogUint("uid", getuid())
