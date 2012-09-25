@@ -994,7 +994,7 @@ static int konoha_parseopt(KonohaContext* konoha, PlatformApiVar *plat, int argc
 	trace(&arg,
 			LogText("@", "start"),
 			LogText("scriptname", scriptname),
-			LogText("command", lineOfArgs),
+			LogText("argv", lineOfArgs),
 			LogUint("pid", thispid),
 			LogUint("ppid", getppid()),
 			LogUint("uid", getuid())
