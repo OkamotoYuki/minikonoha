@@ -108,6 +108,7 @@ set(PACKAGES
 #	openssl
 #	logpool
 	gmp
+	dse2
 )
 
 set(PACKAGE_NAME    ${PROJECT_NAME})
