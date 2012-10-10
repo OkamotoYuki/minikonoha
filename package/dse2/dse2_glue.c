@@ -62,11 +62,12 @@ static void Event_reftrace(KonohaContext *kctx, kObject *o)
 
 /* ------------------------------------------------------------------------ */
 
-static void Event_new(unsigned char *str)
+static void Event_new(KonohaContext kctx, unsigned char *str)
 {
 }
 
 static void httpEventHandler(struct evhttp_request *req, void *args) {
+	KonohaContext *kctx = (KonohaContext *)args;
 	struct evbuffer *body = evhttp_request_get_input_buffer(req);
 	size_t len = evbuffer_get_length(body);
 	unsigned char *requestLine;
@@ -75,7 +76,7 @@ static void httpEventHandler(struct evhttp_request *req, void *args) {
 	switch(req->type) {
 		case EVHTTP_REQ_POST:
 			requestLine = evbuffer_pullup(body, -1);
-			Event_new(requestLine);
+			Event_new(kctx, requestLine);
 			evhttp_send_reply(req, HTTP_OK, "OK", buf);
 			break;
 		default:
@@ -86,12 +87,14 @@ static void httpEventHandler(struct evhttp_request *req, void *args) {
 }
 
 typedef struct {
+	KonohaContext *kctx;
 	const char *host;
 	int port;
 } targs_t;
 
 static void *httpEventListener(void *args) {
 	targs_t *targs = (targs_t *)args;
+	KonohaContext *kctx = targs->kctx;
 	const char *host = targs->host;
 	int port = targs->port;
 	struct event_base *base = event_base_new();
@@ -99,7 +102,7 @@ static void *httpEventListener(void *args) {
 	if(evhttp_bind_socket(httpd, host, port) < 0) {
 		pthread_exit(NULL);
 	}
-	evhttp_set_gencb(httpd, httpEventHandler, NULL);
+	evhttp_set_gencb(httpd, httpEventHandler, (void *)kctx);
 	event_base_dispatch(base);
 	evhttp_free(httpd);
 	event_base_free(base);
@@ -111,6 +114,7 @@ static KMETHOD HttpEventGenerator_start(KonohaContext *kctx, KonohaStack *sfp) {
 	int port = sfp[2].intValue;
 	pthread_t t;
 	targs_t targs = {
+		kctx,
 		host,
 		port,
 	};
