@@ -36,8 +36,7 @@ extern "C"{
 
 #define keventshare ((keventshare_t *)kctx->modshare[MOD_EVENT])
 #define FLAG_EVENT (1 << 0)
-#define KonohaContext_getEventModule(kctx)    ((keventshare_t*)kctx->modshare[MOD_EVENT])
-#define CT_Event (KonohaContext_getEventModule(kctx)->cEvent)
+#define CT_Event (keventshare(kctx)->cEvent)
 
 typedef struct {
 	KonohaModule h;
