@@ -181,6 +181,9 @@ static VirtualMachineInstruction *KonohaVirtualMachine_tryJump(KonohaContext *kc
 
 static void KonohaVirtualMachine_onSafePoint(KonohaContext *kctx, KonohaStack *sfp, kfileline_t pline)
 {
+	if(kctx->modshare[MOD_EVENT] != NULL) {
+		KLIB KscheduleEvent(kctx);
+	}
 	KNH_SAFEPOINT(kctx, sfp);
 }
 

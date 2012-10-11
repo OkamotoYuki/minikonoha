@@ -3,8 +3,6 @@ import("posix.process");
 import("dse2");
 
 void enqEvent(Event e) {
-	//d.queue.enq(e);
-	System.setSafepoint();
 	System.p(e.getProperty("event"));
 }
 
