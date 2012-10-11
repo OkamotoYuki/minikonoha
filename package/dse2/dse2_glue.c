@@ -70,6 +70,7 @@ static void Event_free(KonohaContext *kctx, kObject *o)
 
 static void Event_reftrace(KonohaContext *kctx, kObject *o)
 {
+	// TODO
 }
 
 /* ------------------------------------------------------------------------ */
@@ -82,6 +83,10 @@ static void Event_new(KonohaContext *kctx, unsigned char *str)
 	root = json_loads((const char *)str, 0, &error);
 	kEvent *ev = (kEvent *)KLIB new_kObject(kctx, CT_Event, 0);
 	ev->j = root;
+
+	BEGIN_LOCAL(lsfp, K_CALLDELTA+0);
+	KCALL(lsfp, 0, keventshare->enq_func, 0, K_NULL);
+	END_LOCAL();
 }
 
 static void httpEventHandler(struct evhttp_request *req, void *args) {
