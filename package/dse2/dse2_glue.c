@@ -97,12 +97,12 @@ static void httpEventHandler(struct evhttp_request *req, void *args) {
 	struct evbuffer *body = evhttp_request_get_input_buffer(req);
 	size_t len = evbuffer_get_length(body);
 	unsigned char *requestLine;
-	requestLine[len] = '\0';
 	struct evbuffer *buf = evbuffer_new();
 
 	switch(req->type) {
 		case EVHTTP_REQ_POST:
 			requestLine = evbuffer_pullup(body, -1);
+			requestLine[len] = '\0';
 			Event_new(kctx, requestLine);
 			evhttp_send_reply(req, HTTP_OK, "OK", buf);
 			break;
