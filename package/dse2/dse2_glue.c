@@ -84,8 +84,11 @@ static void Event_new(KonohaContext *kctx, unsigned char *str)
 	kEvent *ev = (kEvent *)KLIB new_kObject(kctx, CT_Event, 0);
 	ev->j = root;
 
-	BEGIN_LOCAL(lsfp, K_CALLDELTA+0);
-	KCALL(lsfp, 0, keventshare->enq_func, 0, K_NULL);
+	ktype_t resolve_type = Method_returnType(keventshare->enq_func->mtd);
+	BEGIN_LOCAL(lsfp, K_CALLDELTA+1);
+	KSETv_AND_WRITE_BARRIER(NULL, lsfp[K_CALLDELTA+0].o, K_NULL, GC_NO_WRITE_BARRIER);
+	lsfp[K_CALLDELTA+1].o = (kObject *)ev;
+	KCALL(lsfp, 0, keventshare->enq_func->mtd, 1, KLIB Knull(kctx, CT_(resolve_type)));
 	END_LOCAL();
 }
 
@@ -145,6 +148,60 @@ static KMETHOD HttpEventGenerator_start(KonohaContext *kctx, KonohaStack *sfp) {
 	pthread_create(&t, NULL, httpEventListener, (void *)&targs);
 }
 
+/* ------------------------------------------------------------------------ */
+#define CHECK_JSON(obj, ret_stmt) do {\
+		if (!json_is_object(obj)) {\
+			DBG_P("[ERROR]: Object is not Json object.");\
+			/*KLIB KonohaRuntime_raise(kctx, 1, sfp, pline, msg);*/\
+			ret_stmt;\
+		}\
+	} while(0);
+
+//## Boolean Event.getBool(String key);
+static KMETHOD Event_getBool(KonohaContext *kctx, KonohaStack *sfp)
+{
+	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
+	CHECK_JSON(obj, RETURNb_(false));
+	const char *key = S_text(sfp[1].asString);
+	json_t* json = json_object_get(obj, key);
+	kbool_t ret = false;
+	if (json_is_true(json)) {
+		ret = true;
+	}
+	RETURNb_(ret);
+}
+
+//## int Event.getInt(String key);
+static KMETHOD Event_getInt(KonohaContext *kctx, KonohaStack *sfp)
+{
+	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
+	CHECK_JSON(obj, RETURNi_(0));
+	const char *key = S_text(sfp[1].asString);
+	json_t* ret = json_object_get(obj, key);
+	if (!json_is_integer(ret)) {
+		RETURNi_(0);
+	}
+	json_int_t val = json_integer_value(ret);
+	RETURNi_((kint_t)val);
+}
+
+//## String Event.getString(String key);
+static KMETHOD Event_getString(KonohaContext *kctx, KonohaStack *sfp)
+{
+	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
+	CHECK_JSON(obj, RETURN_(KNULL(String)));
+	const char *key = S_text(sfp[1].asString);
+	json_t* ret = json_object_get(obj, key);
+	if (!json_is_string(ret)) {
+		RETURN_(KNULL(String));
+	}
+	ret = json_incref(ret);
+	const char* str = json_string_value(ret);
+	if (str == NULL) {
+		RETURN_(KNULL(String));
+	}
+	RETURN_(KLIB new_kString(kctx, str, strlen(str), 0));
+}
 
 /* ------------------------------------------------------------------------ */
 //## void System.setSafepoint();
@@ -168,7 +225,6 @@ static KMETHOD System_setEnqFunc(KonohaContext *kctx, KonohaStack *sfp)
 	keventshare->enq_func = sfp[1].asFunc;
 	RETURNvoid_();
 }
-
 
 /* ------------------------------------------------------------------------ */
 
@@ -204,8 +260,11 @@ static void keventshare_free(KonohaContext *kctx, struct KonohaModule *baseh)
 
 #define _Public   kMethod_Public
 #define _Static   kMethod_Static
+#define _Const    kMethod_Const
+#define _Im       kMethod_Immutable
 #define _F(F)   (intptr_t)(F)
 
+#define TY_Event cEvent->typeId
 #define TY_HttpEventGenerator cHttpEventGenerator->typeId
 
 static kbool_t dse2_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc, const char**args, kfileline_t pline)
@@ -235,12 +294,16 @@ static kbool_t dse2_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc, c
 	KSET_KLIB(KscheduleEvent, 0);
 	KLIB KonohaRuntime_setModule(kctx, MOD_EVENT, &base->h, pline);
 
-	kparamtype_t P_Func[] = {{TY_Object/*TODO TY_Event */}};
+	kparamtype_t P_Func[] = {{TY_Event}};
 	int TY_EnqFunc = (KLIB KonohaClass_Generics(kctx, CT_Func, TY_void, 1, P_Func))->typeId;
 
 	KDEFINE_METHOD MethodData[] = {
 		/* event gen */
 		_Public|_Static, _F(HttpEventGenerator_start), TY_void, TY_HttpEventGenerator, MN_("start"), 2, TY_String, FN_("host"), TY_int, FN_("port"),
+		/* event */
+		_Public|_Const|_Im, _F(Event_getBool),   TY_boolean,   TY_Event, MN_("getBool"),   1, TY_String, FN_("key"),
+		_Public|_Const|_Im, _F(Event_getInt),    TY_int,       TY_Event, MN_("getInt"),    1, TY_String, FN_("key"),
+		_Public|_Const|_Im, _F(Event_getString), TY_String,    TY_Event, MN_("getString"), 1, TY_String, FN_("key"),
 
 		/* dispatch */
 		_Public|_Static, _F(System_setSafepoint), TY_void, TY_System, MN_("setSafepoint"), 0,
