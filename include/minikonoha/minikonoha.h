@@ -1386,6 +1386,9 @@ struct KonohaLibVar {
 	bool (*KisObject)   (GcContext *gc, void *ptr);
 	void (*KvisitObject)(struct kObjectVisitor *visitor, struct kObjectVar *obj);
 
+	/* Event Handler API */
+	void (*KscheduleEvent)  (KonohaContext *);
+
 	kObjectVar **(*Kobject_reftail)(KonohaContext *, size_t size);
 	void  (*Kwrite_barrier)(KonohaContext *, kObject *);
 	void (*KsetObjectField)(kObject *parent, kObjectVar **oldValPtr, kObjectVar *newVal);
@@ -1475,7 +1478,6 @@ struct KonohaLibVar {
 	kbool_t          (*KonohaRuntime_tryCallMethod)(KonohaContext *, KonohaStack *);
 	void             (*KonohaRuntime_raise)(KonohaContext*, int symbol, KonohaStack *, kfileline_t, kString *Nullable);
 	void             (*Kreportf)(KonohaContext*, kinfotag_t, kfileline_t, const char *fmt, ...);
-	void             (*KscheduleEvent)(KonohaContext*);
 };
 
 #define K_NULL            (kctx->share->constNull)
