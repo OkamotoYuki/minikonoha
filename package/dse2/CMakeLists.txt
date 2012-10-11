@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 find_library(HAVE_LIBEVENT NAMES event)
+find_library(HAVE_LIBJANSSON NAMES jansson)
 if(HAVE_LIBEVENT)
 	if(HAVE_LIBJANSSON)
 		set(ExtraLibs ${ExtraLibs} ${HAVE_LIBEVENT})
