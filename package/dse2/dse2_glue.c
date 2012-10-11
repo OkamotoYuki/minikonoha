@@ -140,11 +140,10 @@ static KMETHOD HttpEventGenerator_start(KonohaContext *kctx, KonohaStack *sfp) {
 	const char *host = S_text(sfp[1].asString);
 	int port = sfp[2].intValue;
 	pthread_t t;
-	targs_t targs = {
-		kctx,
-		host,
-		port,
-	};
+	static targs_t targs = {};
+	targs.kctx = kctx;
+	targs.host = host;
+	targs.port = port;
 	pthread_create(&t, NULL, httpEventListener, (void *)&targs);
 }
 

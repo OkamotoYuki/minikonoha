@@ -101,7 +101,7 @@ set(PACKAGES
 	dscript.shell
 	curl
 ##	ijit
-##	jansson
+	jansson
 	mecab
 	python
 	apache
