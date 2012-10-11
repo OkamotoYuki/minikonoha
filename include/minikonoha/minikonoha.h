@@ -673,6 +673,7 @@ struct KonohaStackRuntimeVar {
 //#define MOD_llvm       15
 #define MOD_REGEXP     16
 #define MOD_APACHE     17
+#define MOD_EVENT      18 
 
 struct KonohaModule {
 	const char *name;
@@ -1474,6 +1475,7 @@ struct KonohaLibVar {
 	kbool_t          (*KonohaRuntime_tryCallMethod)(KonohaContext *, KonohaStack *);
 	void             (*KonohaRuntime_raise)(KonohaContext*, int symbol, KonohaStack *, kfileline_t, kString *Nullable);
 	void             (*Kreportf)(KonohaContext*, kinfotag_t, kfileline_t, const char *fmt, ...);
+	void             (*KscheduleEvent)(KonohaContext*);
 };
 
 #define K_NULL            (kctx->share->constNull)

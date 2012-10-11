@@ -34,6 +34,19 @@
 extern "C"{
 #endif
 
+#define keventshare ((keventshare_t *)kctx->modshare[MOD_EVENT])
+#define FLAG_EVENT (1 << 0)
+#define KonohaContext_getEventModule(kctx)    ((keventshare_t*)kctx->modshare[MOD_EVENT])
+#define CT_Event (KonohaContext_getEventModule(kctx)->cEvent)
+
+typedef struct {
+	KonohaModule h;
+	int flag;
+	kFunc *invoke_func;
+	kFunc *enq_func;
+	KonohaClass *cEvent;
+} keventshare_t;
+
 /* ------------------------------------------------------------------------ */
 
 typedef struct {
@@ -62,8 +75,14 @@ static void Event_reftrace(KonohaContext *kctx, kObject *o)
 
 /* ------------------------------------------------------------------------ */
 
-static void Event_new(KonohaContext kctx, unsigned char *str)
+static void Event_new(KonohaContext *kctx, unsigned char *str)
 {
+	json_t *root;
+	json_error_t error;
+
+	root = json_loads((const char *)str, 0, &error);
+	kEvent *ev = (kEvent *)KLIB new_kObject(kctx, CT_Event, 0);
+	ev->j = root;
 }
 
 static void httpEventHandler(struct evhttp_request *req, void *args) {
@@ -71,6 +90,7 @@ static void httpEventHandler(struct evhttp_request *req, void *args) {
 	struct evbuffer *body = evhttp_request_get_input_buffer(req);
 	size_t len = evbuffer_get_length(body);
 	unsigned char *requestLine;
+	requestLine[len] = '\0';
 	struct evbuffer *buf = evbuffer_new();
 
 	switch(req->type) {
@@ -121,13 +141,68 @@ static KMETHOD HttpEventGenerator_start(KonohaContext *kctx, KonohaStack *sfp) {
 	pthread_create(&t, NULL, httpEventListener, (void *)&targs);
 }
 
+
+/* ------------------------------------------------------------------------ */
+//## void System.setSafepoint();
+static KMETHOD System_setSafepoint(KonohaContext *kctx, KonohaStack *sfp)
+{
+	keventshare->flag |= FLAG_EVENT;
+	((KonohaContextVar *)kctx)->safepoint = 1;
+	RETURNvoid_();
+}
+
+//## void System.setEventInvokeFunc(Func f);
+static KMETHOD System_setEventInvokeFunc(KonohaContext *kctx, KonohaStack *sfp)
+{
+	keventshare->invoke_func = sfp[1].asFunc;
+	RETURNvoid_();
+}
+
+//## void System.setEnqFunc(Func f);
+static KMETHOD System_setEnqFunc(KonohaContext *kctx, KonohaStack *sfp)
+{
+	keventshare->enq_func = sfp[1].asFunc;
+	RETURNvoid_();
+}
+
+
+/* ------------------------------------------------------------------------ */
+
+static void KscheduleEvent(KonohaContext *kctx) {
+	// dispatch
+	if(keventshare->flag & FLAG_EVENT) {
+		keventshare->flag ^= FLAG_EVENT;
+		BEGIN_LOCAL(lsfp, K_CALLDELTA);
+		KCALL(lsfp, 0, keventshare->invoke_func->mtd, 0, K_NULL);
+		END_LOCAL();
+	}
+}
+
+static void keventshare_setup(KonohaContext *kctx, struct KonohaModule *def, int newctx)
+{
+}
+
+static void keventshare_reftrace(KonohaContext *kctx, struct KonohaModule *baseh)
+{
+	keventshare_t *base = (keventshare_t *)baseh;
+	BEGIN_REFTRACE(2);
+	KREFTRACEv(base->invoke_func);
+	KREFTRACEv(base->enq_func);
+	END_REFTRACE();
+}
+
+static void keventshare_free(KonohaContext *kctx, struct KonohaModule *baseh)
+{
+	KFREE(baseh, sizeof(keventshare_t));
+}
+
 /* ------------------------------------------------------------------------ */
 
 #define _Public   kMethod_Public
 #define _Static   kMethod_Static
 #define _F(F)   (intptr_t)(F)
 
-#define TY_HttpEventGenerator     cHttpEventGenerator->typeId
+#define TY_HttpEventGenerator cHttpEventGenerator->typeId
 
 static kbool_t dse2_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc, const char**args, kfileline_t pline)
 {
@@ -145,8 +220,28 @@ static kbool_t dse2_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc, c
 	KonohaClass *cEvent = KLIB kNameSpace_defineClass(kctx, ns, NULL, &defEvent, pline);
 	KonohaClass *cHttpEventGenerator = KLIB kNameSpace_defineClass(kctx, ns, NULL, &defHttpEventGenerator, pline);
 
+	keventshare_t *base = (keventshare_t*)KCALLOC(sizeof(keventshare_t), 1);
+	base->h.name     = "event";
+	base->h.setup    = keventshare_setup;
+	base->h.reftrace = keventshare_reftrace;
+	base->h.free     = keventshare_free;
+	base->flag = 0;
+	base->cEvent = cEvent;
+	KINITv(base->invoke_func, K_NULL);
+	KSET_KLIB(KscheduleEvent, 0);
+	KLIB KonohaRuntime_setModule(kctx, MOD_EVENT, &base->h, pline);
+
+	kparamtype_t P_Func[] = {{TY_Object/*TODO TY_Event */}};
+	int TY_EnqFunc = (KLIB KonohaClass_Generics(kctx, CT_Func, TY_void, 1, P_Func))->typeId;
+
 	KDEFINE_METHOD MethodData[] = {
+		/* event gen */
 		_Public|_Static, _F(HttpEventGenerator_start), TY_void, TY_HttpEventGenerator, MN_("start"), 2, TY_String, FN_("host"), TY_int, FN_("port"),
+
+		/* dispatch */
+		_Public|_Static, _F(System_setSafepoint), TY_void, TY_System, MN_("setSafepoint"), 0,
+		_Public|_Static, _F(System_setEventInvokeFunc), TY_void, TY_System, MN_("setEventInvokeFunc"), 1, TY_Func, FN_("f"),
+		_Public|_Static, _F(System_setEnqFunc), TY_void, TY_System, MN_("setEnqFunc"), 1, TY_EnqFunc, FN_("f"),
 		DEND,
 	};
 	KLIB kNameSpace_loadMethodData(kctx, ns, MethodData);
