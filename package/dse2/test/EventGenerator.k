@@ -5,7 +5,7 @@ import("dse2");
 void enqEvent(Event e) {
 	//d.queue.enq(e);
 	System.setSafepoint();
-	System.p(e.getString("event"));
+	System.p(e.getProperty("event"));
 }
 
 void test() {

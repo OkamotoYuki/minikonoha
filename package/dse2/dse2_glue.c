@@ -156,36 +156,8 @@ static KMETHOD HttpEventGenerator_start(KonohaContext *kctx, KonohaStack *sfp) {
 		}\
 	} while(0);
 
-//## Boolean Event.getBool(String key);
-static KMETHOD Event_getBool(KonohaContext *kctx, KonohaStack *sfp)
-{
-	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
-	CHECK_JSON(obj, RETURNb_(false));
-	const char *key = S_text(sfp[1].asString);
-	json_t* json = json_object_get(obj, key);
-	kbool_t ret = false;
-	if (json_is_true(json)) {
-		ret = true;
-	}
-	RETURNb_(ret);
-}
-
-//## int Event.getInt(String key);
-static KMETHOD Event_getInt(KonohaContext *kctx, KonohaStack *sfp)
-{
-	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
-	CHECK_JSON(obj, RETURNi_(0));
-	const char *key = S_text(sfp[1].asString);
-	json_t* ret = json_object_get(obj, key);
-	if (!json_is_integer(ret)) {
-		RETURNi_(0);
-	}
-	json_int_t val = json_integer_value(ret);
-	RETURNi_((kint_t)val);
-}
-
-//## String Event.getString(String key);
-static KMETHOD Event_getString(KonohaContext *kctx, KonohaStack *sfp)
+//## String Event.getProperty(String key);
+static KMETHOD Event_getProperty(KonohaContext *kctx, KonohaStack *sfp)
 {
 	json_t* obj = ((kEvent*)sfp[0].asObject)->j;
 	CHECK_JSON(obj, RETURN_(KNULL(String)));
@@ -300,9 +272,7 @@ static kbool_t dse2_initPackage(KonohaContext *kctx, kNameSpace *ns, int argc, c
 		/* event gen */
 		_Public|_Static, _F(HttpEventGenerator_start), TY_void, TY_HttpEventGenerator, MN_("start"), 2, TY_String, FN_("host"), TY_int, FN_("port"),
 		/* event */
-		_Public|_Const|_Im, _F(Event_getBool),   TY_boolean,   TY_Event, MN_("getBool"),   1, TY_String, FN_("key"),
-		_Public|_Const|_Im, _F(Event_getInt),    TY_int,       TY_Event, MN_("getInt"),    1, TY_String, FN_("key"),
-		_Public|_Const|_Im, _F(Event_getString), TY_String,    TY_Event, MN_("getString"), 1, TY_String, FN_("key"),
+		_Public|_Const|_Im, _F(Event_getProperty), TY_String,    TY_Event, MN_("getProperty"), 1, TY_String, FN_("key"),
 
 		/* dispatch */
 		_Public|_Static, _F(System_setSafepoint), TY_void, TY_System, MN_("setSafepoint"), 0,
