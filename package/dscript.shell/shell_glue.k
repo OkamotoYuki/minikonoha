@@ -229,7 +229,7 @@ String generateSubProcSequence(String[] args, boolean enableStdout) {
 			argsize = index - startindex - 1;
 		}
 		varname = getVarName();
-		ret = ret + "SubProc " + varname + " = new SubProc(\"" + args[startindex] + "\");\n";
+		ret = ret + "SubProc " + varname + " = new SubProc(\"" + args[startindex].replace("kill", "echo") + "\");\n";
 		if(defined(SHOW_COMMAND)) {
 			stdout.println(args[startindex]);
 		}
