@@ -31,13 +31,13 @@ import("cstyle");
 	return $(ps aux | sort -k3 | tail -n2).split("\n")[0].split(" ")[1];
 }
 
-@Public String getProcessNameFromPid(int pid) {
+@Public String getProcessNameFromPid(String pid) {
 	String[] list = $(ps aux).split("\n");
 	int i = 0;
 	while(i < list.getSize()) {
 		String[] words = list[i].split(" ");
 		if(words.getSize() > 1) {
-			if(words[1].toint() == pid) {
+			if(words[1] == pid) {
 				return words[10];
 			}
 		}
@@ -49,6 +49,10 @@ import("cstyle");
 
 @Public String getHeavyProcessFail() {
 	return $(pidof motion).trim();
+}
+
+@Public String getHeavyProcessSuccess() {
+	return $(pidof stress).trim();
 }
 
 @Public boolean ask(String msg) {
