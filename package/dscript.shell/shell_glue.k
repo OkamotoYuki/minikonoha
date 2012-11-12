@@ -77,6 +77,22 @@ String[] concatTokenList(Token[] tokenList) {
 	return ret;
 }
 
+String[] replaceKill(String[] args) {
+	int i = 0;
+	String[] ret = [];
+	while(i < args.getSize()) {
+		if(args[i] == "kill") {
+			ret.add("echo");
+			ret.add("kill");
+		}
+		else {
+			ret.add(args[i]);
+		}
+		i = i + 1;
+	}
+	return ret;
+}
+
 String getVarName() {
 	String rand = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	String ret = "__s";
@@ -229,7 +245,7 @@ String generateSubProcSequence(String[] args, boolean enableStdout) {
 			argsize = index - startindex - 1;
 		}
 		varname = getVarName();
-		ret = ret + "SubProc " + varname + " = new SubProc(\"" + args[startindex].replace("kill", "echo") + "\");\n";
+		ret = ret + "SubProc " + varname + " = new SubProc(\"" + args[startindex] + "\");\n";
 		if(defined(SHOW_COMMAND)) {
 			stdout.println(args[startindex]);
 		}
@@ -266,12 +282,27 @@ String generateSubProcSequence(String[] args, boolean enableStdout) {
 	return ret;
 }
 
+boolean Array_hasKill(String[] args) {
+	int i = 0;
+	while(i < args.getSize()) {
+		if(args[i] == "kill") {
+			return true;
+		}
+		i = i + 1;
+	}
+	return false;
+}
+
 boolean statementShell(Stmt stmt, Gamma gma) {
 	Token[] tokenList = stmt.getTokenList("$Token", null);
 	if(tokenList.isNull()) {
 		return false;
 	}
 	String[] args = concatTokenList(tokenList);
+	if(Array_hasKill(args)) {
+		stmt.printWarning("'kill' is risky");
+		args = replaceKill(args);
+	}
 	Block block = stmt.newBlock(generateSubProcSequence(args, true));
 	boolean ret = block.TypeCheckAll(gma);
 	if(!ret) {
@@ -338,6 +369,10 @@ Expr expressionCommandReplace(Stmt stmt, Token[] tokenList, int beginIdx, int op
 		}
 	}
 	String[] args = tokenList[operatorIdx].getText().trim().split(" ");
+	if(Array_hasKill(args)) {
+		stmt.printWarning("'kill' is risky");
+		args = replaceKill(args);
+	}
 	String funcName = getFuncName();
 	String evaltext = "@Public String " + funcName + "() { ";
 	evaltext = evaltext + generateSubProcSequence(args, false).replace("\n", " ");
