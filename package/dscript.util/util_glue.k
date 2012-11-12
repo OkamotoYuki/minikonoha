@@ -24,10 +24,11 @@
 
 import("dscript.shell");
 import("konoha.array");
+import("konoha.console");
 import("cstyle");
 
-@Public int getHeavyProcess() {
-	return $(ps aux | sort -k3 | tail -n2).split("\n")[0].split(" ")[1].toint();
+@Public String getHeavyProcess() {
+	return $(ps aux | sort -k3 | tail -n2).split("\n")[0].split(" ")[1];
 }
 
 @Public String getProcessNameFromPid(int pid) {
@@ -48,4 +49,8 @@ import("cstyle");
 
 @Public String getHeavyProcessFail() {
 	return $(pidof motion).trim();
+}
+
+@Public boolean ask(String msg) {
+	return Console.inputUserApproval(msg, "YES", "NO", true);
 }
