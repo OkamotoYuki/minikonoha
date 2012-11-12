@@ -1,6 +1,6 @@
 // written by chenji
 
-import("dscript.shell");
+//import("dscript.shell");
 
 void test() {
 	String s1 = $(echo hi);
