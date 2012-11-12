@@ -96,6 +96,7 @@ set(PACKAGES
 	dscript.dollar
 	dscript.subproc
 	dscript.shell
+	dscript.util
 	curl
 	llvm
 	libvirt
