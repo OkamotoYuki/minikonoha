@@ -50,6 +50,12 @@ import("sugar");
 	return ret.substr(0, ret.getSize() - 1);
 }
 
+@Public void PrintNotNullMessage(String msg) {
+	if(msg != null) {
+		System.p(msg);
+	}
+}
+
 String[] concatTokenList(Token[] tokenList) {
 	int i = 0;
 	String[] ret = [];
@@ -67,6 +73,22 @@ String[] concatTokenList(Token[] tokenList) {
 	}
 	if(buf != "") {
 		ret.add(buf);
+	}
+	return ret;
+}
+
+String[] replaceKill(String[] args) {
+	int i = 0;
+	String[] ret = [];
+	while(i < args.getSize()) {
+		if(args[i] == "kill") {
+			ret.add("echo");
+			ret.add("kill");
+		}
+		else {
+			ret.add(args[i]);
+		}
+		i = i + 1;
 	}
 	return ret;
 }
@@ -161,7 +183,7 @@ String getPipeString(String prevname, String varname, String[] args, int startin
 		if(prevname != "") {
 			ret = ret + varname + ".bg();\n";
 			if(defined(USE_PRINT)) {
-				ret = ret + "System.p(";
+				ret = ret + "PrintNotNullMessage(";
 			}
 			ret = ret + varname + ".communicate(" + prevname + ".getOutputStream().readAll())";
 			if(defined(USE_PRINT)) {
@@ -183,7 +205,7 @@ String getPipeString(String prevname, String varname, String[] args, int startin
 			if(defined(USE_PRINT) && index < 0) {
 				/* use System.p instead of pipe to stdout */
 				ret = ret + varname + ".bg();\n";
-				ret = ret + "System.p(" + varname + ".communicate(\"\")[0]);\n";
+				ret = ret + "PrintNotNullMessage(" + varname + ".communicate(\"\")[0]);\n";
 			}
 			else {
 				ret = ret + varname + ".fg();\n";
@@ -260,12 +282,27 @@ String generateSubProcSequence(String[] args, boolean enableStdout) {
 	return ret;
 }
 
+boolean Array_hasKill(String[] args) {
+	int i = 0;
+	while(i < args.getSize()) {
+		if(args[i] == "kill") {
+			return true;
+		}
+		i = i + 1;
+	}
+	return false;
+}
+
 boolean statementShell(Stmt stmt, Gamma gma) {
 	Token[] tokenList = stmt.getTokenList("$Token", null);
 	if(tokenList.isNull()) {
 		return false;
 	}
 	String[] args = concatTokenList(tokenList);
+	if(Array_hasKill(args)) {
+		stmt.printWarning("'kill' is risky");
+		args = replaceKill(args);
+	}
 	Block block = stmt.newBlock(generateSubProcSequence(args, true));
 	boolean ret = block.TypeCheckAll(gma);
 	if(!ret) {
@@ -291,19 +328,6 @@ int patternMatchShell(Stmt stmt, int nameid, Token[] tokenList, int beginIdx, in
 		return beginIdx;
 	}
 	return -1;
-}
-
-Expr expressionAsk(Stmt stmt, Token[] tokenList, int beginIdx, int operatorIdx, int endIdx) {
-	if(beginIdx + 1 < endIdx) {
-		Token methodToken = new Token("inputUserApproval");
-		Expr classExpr = new Expr(Console);
-		Expr arg1 = new Expr(tokenList[beginIdx + 1].getText());
-		Expr arg2 = new Expr("YES");
-		Expr arg3 = new Expr("NO");
-		Expr arg4 = new Expr(false);
-		Expr expr = stmt.newUntypedCallStyleExpr(methodToken, classExpr, arg1, arg2, arg3, arg4);
-		return expr;
-	}
 }
 
 int tokenFuncDollar(Token tk, String source) {
@@ -345,6 +369,10 @@ Expr expressionCommandReplace(Stmt stmt, Token[] tokenList, int beginIdx, int op
 		}
 	}
 	String[] args = tokenList[operatorIdx].getText().trim().split(" ");
+	if(Array_hasKill(args)) {
+		stmt.printWarning("'kill' is risky");
+		args = replaceKill(args);
+	}
 	String funcName = getFuncName();
 	String evaltext = "@Public String " + funcName + "() { ";
 	evaltext = evaltext + generateSubProcSequence(args, false).replace("\n", " ");
@@ -361,7 +389,6 @@ Expr expressionCommandReplace(Stmt stmt, Token[] tokenList, int beginIdx, int op
 addPatternMatch("$Shell", patternMatchShell);
 addStatement("$Shell", statementShell);
 addTopLevelStatement("$Shell", statementShell);
-addExpression("ask", expressionAsk);
 
 syntax $Shell $Token*
 
