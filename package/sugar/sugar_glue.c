@@ -421,13 +421,23 @@ static KMETHOD Stmt_TypeCheckExprPol(KonohaContext *kctx, KonohaStack *sfp)
 }
 
 //## Expr Stmt.printError(String msg);
-static KMETHOD Stmt_printMessage2rintError(KonohaContext *kctx, KonohaStack *sfp)
+static KMETHOD Stmt_printError(KonohaContext *kctx, KonohaStack *sfp)
 {
 	kStmt   *stmt  = sfp[0].asStmt;
 	kString *msg   = sfp[1].asString;
 	SUGAR kStmt_printMessage2(kctx, stmt, NULL, ErrTag, "%s", S_text(msg));
 	KReturn(K_NULLEXPR);
 }
+
+//## Expr Stmt.printWarning(String msg);
+static KMETHOD Stmt_printWarning(KonohaContext *kctx, KonohaStack *sfp)
+{
+	kStmt   *stmt  = sfp[0].asStmt;
+	kString *msg   = sfp[1].asString;
+	SUGAR kStmt_printMessage2(kctx, stmt, NULL, WarnTag, "%s", S_text(msg));
+	KReturn(K_NULLEXPR);
+}
+
 
 //## Expr Stmt.newExpr(Token[] tokenList, int s, int e);
 static KMETHOD Stmt_newExpr(KonohaContext *kctx, KonohaStack *sfp)
@@ -820,7 +830,8 @@ static kbool_t sugar_PackupNameSpace(KonohaContext *kctx, kNameSpace *ns, int op
 		_Public, _F(Stmt_getExpr), TY_Expr, TY_Stmt, MN_("getExpr"), 2, TY_symbol, FN_key, TY_Expr, FN_defval,
 		_Public, _F(Stmt_TypeCheckExpr), TY_boolean, TY_Stmt, MN_("TypeCheckExpr"), 3, TY_symbol, FN_key, TY_Gamma, FN_gma, TY_cid, FN_typeid,
 		_Public, _F(Stmt_TypeCheckExprPol), TY_boolean, TY_Stmt, MN_("TypeCheckExpr"), 4, TY_symbol, FN_key, TY_Gamma, FN_gma, TY_cid, FN_typeid, TY_int, FN_pol,
-		_Public, _F(Stmt_printMessage2rintError), TY_Expr, TY_Stmt, MN_("printError"), 1, TY_String, FN_msg,
+		_Public, _F(Stmt_printError), TY_Expr, TY_Stmt, MN_("printError"), 1, TY_String, FN_msg,
+		_Public, _F(Stmt_printWarning), TY_Expr, TY_Stmt, MN_("printWarning"), 1, TY_String, FN_msg,
 
 		_Public, _F(Stmt_newExpr), TY_Expr, TY_Stmt, MN_("newExpr"), 3, TY_TokenArray, FN_tokenList, TY_int, FN_s, TY_int, FN_e,
 		_Public, _F(Stmt_setType), TY_void, TY_Stmt, MN_("setType"), 1, TY_int, FN_x,
