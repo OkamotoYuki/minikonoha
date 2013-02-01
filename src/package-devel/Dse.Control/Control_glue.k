@@ -91,9 +91,19 @@ class DTask {
 	String id;
 	String script;
 
+	DTask() {
+		this.id = null;
+	}
+
 	@Public DTask(String filePath) {
 		this.id = null;
 		this.script = readFile(filePath).replace("\"", "\\\"");
+	}
+
+	@Public @Static DTask CreateFromText(String script) {
+		DTask task = new DTask();
+		task.script = script.replace("\"", "\\\"");
+		return task;
 	}
 
 	String execute(String to) {
