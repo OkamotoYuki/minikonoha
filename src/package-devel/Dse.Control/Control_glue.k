@@ -120,7 +120,7 @@ class DTask {
 		this.id = "" + global.cid + "+" + global.tid;
 		global.tid = global.tid + 1;
 		request.set("params", params);
-		global.DTaskStatusMap.set(this.id, null);
+		global.DTaskStatusMap.set(this.id, new Json());
 		Curl curl = new Curl();
 		curl.setOpt(CURLOPT_URL, to);
 		curl.setOpt(CURLOPT_POSTFIELDS, request.toString());
@@ -156,7 +156,7 @@ class Dse {
 
 	Json[] waitDTasks() {
 		Json[] responses = [];
-		Json response = null;
+		Json response = new Json();
 		int i;
 		int size;
 		String dtaskId;
@@ -185,7 +185,7 @@ class Dse {
 	@Public Json[] dispatchDTasks() {
 		int i = 0;
 		int size = this.dtasks.getSize();
-		Json[] responses;
+		Json[] responses = [];
 		while(i < size) {
 			this.dtaskIds.add(this.dtasks[i].execute(this.IP));
 			i++;
@@ -200,7 +200,7 @@ class Dse {
 		String[] ret;
 		int i = 0;
 		int size = this.dtasks.getSize();
-		Json[] responses;
+		Json[] responses = [];
 		while(i < size) {
 			this.dtaskIds.add(this.dtasks[i].execute(this.IP));
 			i++;
@@ -252,7 +252,7 @@ class DseGroup {
 
 	Json[] waitDTasks() {
 		Json[] responses = [];
-		Json response = null;
+		Json response = new Json();
 		int i;
 		int size;
 		String dtaskId;
@@ -282,7 +282,7 @@ class DseGroup {
 		int i = 0;
 		int j = 0; // TODO remove it
 		int size = this.dses.getSize();
-		Json[] responses;
+		Json[] responses = [];
 		while(i < size) {
 //			this.dtaskIds.concat(this.dses[i].dispatchDTasksWithNoBlocking());  TODO use concat in this way
 			String[] ids = this.dses[i].dispatchDTasksWithNoBlocking();
